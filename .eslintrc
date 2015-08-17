@@ -11,11 +11,13 @@
     "modules": true
   },
   "globals": {
-    "atom": true
+    "atom": true,
+    "angular": true,
+    "cordova": true
   },
   "rules": {
     /* airbnb javascript style guide rules */
-    "strict": [2, "never"],
+    "strict": [1, "never"],
     // es6
     "no-var": 0,
     // variables
@@ -52,7 +54,7 @@
     "consistent-return": 2,
     "curly": [1, "multi"],
     "default-case": 2,
-    "dot-notation": [2, {
+    "dot-notation": [0, {
       "allowKeywords": true
     }],
     "eqeqeq": 2,
@@ -83,7 +85,7 @@
     "no-throw-literal": 2,
     "no-with": 2,
     "radix": 1,
-    "vars-on-top": 2,
+    "vars-on-top": 1,
     "wrap-iife": [2, "any"],
     "yoda": 2,
     // style
@@ -94,9 +96,9 @@
       }
     ],
     "quotes": [
-      2, "single", "avoid-escape"
+      1, "single", "avoid-escape"
     ],
-    "camelcase": [2, {
+    "camelcase": [1, {
       "properties": "never"
     }],
     "comma-spacing": [2, {
@@ -124,7 +126,7 @@
     "padded-blocks": [0, "never"],
     "semi-spacing": [2, {
       "before": false,
-      "after": true
+      "after": false
     }],
     "space-after-keywords": 2,
     "space-before-blocks": 2,
@@ -138,12 +140,12 @@
       "named": "never",
       "anonymous": "never"
     }],
-    /*"semi": [1, "never"],*/
+    "semi": [1, "always"],
     "func-names": 0,
-    "consistent-this": [2, "this"],
+    "consistent-this": [0, "this"],
     "func-style": [0, "expression"],
     "generator-star-spacing": 2,
-    "max-nested-callbacks": [2, 3],
+    "max-nested-callbacks": [2, 5],
     "new-parens": 2,
     "no-array-constructor": 2,
     "no-else-return": 0,
