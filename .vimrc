@@ -9,9 +9,10 @@ syntax on
 colorscheme onedark
 let g:airline_theme='onedark'
 set laststatus=2
+"set showtabline=2
 
 " Font
-set gfn=Monaco:h15
+set gfn=Andale\ Mono:h15
 
 " Syntastic
 set statusline+=%#warningmsg#
@@ -25,8 +26,11 @@ let g:syntastic_check_on_wq = 0
 let g:airline#extensions#syntastic#enabled = 1
 " Standard syntax style for Javascript (automatic fortmatting on save)
 let g:syntastic_javascript_checkers = ['standard']
-autocmd bufwritepost *.js silent !standard % --format
-set autoread
+" autocmd bufwritepost *.js silent !standard % --format
+" set autoread
+
+" NERDTree on startup
+" autocmd vimenter * NERDTree
 
 " Show line numbers
 set number

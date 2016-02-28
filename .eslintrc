@@ -107,7 +107,7 @@
       "after": true
     }],
     "comma-style": [2, "last"],
-    "eol-last": 2,
+    "eol-last": 0,
     "key-spacing": [2, {
       "beforeColon": false,
       "afterColon": true
