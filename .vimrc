@@ -1,18 +1,37 @@
-" Genearl
+" General
+
+" Plugin list:
+" - YouCompleteMe
+" - syntastic
+" - vim-airline
+" - nerdtree
+" - tern_for_vim
+" - vim-colors-solarized
 
 " Pathogen plugin
 execute pathogen#infect()
 
 " Syntax on by default
 syntax on
+syntax enable
+
 " Color scheme
-colorscheme onedark
-let g:airline_theme='onedark'
+" - Onedark
+" colorscheme onedark
+" let g:airline_theme='onedark'
+" - Solarized
+" > Solarized light:
+" set background=light
+" > Solarized dark:
+set background=dark
+colorscheme solarized
+let g:airline_theme='solarized'
+
 set laststatus=2
 "set showtabline=2
 
 " Font
-set gfn=Andale\ Mono:h15
+set gfn=Menlo\ for\ Powerline:h15
 
 " Syntastic
 set statusline+=%#warningmsg#
@@ -29,11 +48,16 @@ let g:syntastic_javascript_checkers = ['standard']
 " autocmd bufwritepost *.js silent !standard % --format
 " set autoread
 
+" YouCompleteMe
+let g:ycm_add_preview_to_completeopt = 1
+let g:ycm_autoclose_preview_window_after_completion = 1
+
 " NERDTree on startup
 " autocmd vimenter * NERDTree
 
 " Show line numbers
 set number
+set relativenumber
 
 " Break lines at word
 set linebreak
@@ -50,7 +74,7 @@ set showmatch
 " Use visual bell (no beeping)
 set visualbell
 
-" Highlight all search results 
+" Highlight all search results
 set hlsearch
 
 " Enable smart-case search
@@ -62,7 +86,6 @@ set ignorecase
 " Searches for strings incrementally
 set incsearch
 
- 
 " Auto-indent new lines
 set autoindent
 
@@ -80,13 +103,26 @@ set smarttab
 
 " Number of spaces per Tab
 set softtabstop=2
- 
+
 " Advanced
 " Show row and column ruler information
 set ruler
- 
+
+" Highlight current line
+set cursorline
+
 " Number of undo levels
 set undolevels=1000
 
 " Backspace behaviour
 set backspace=indent,eol,start
+
+" Disable arrow keys both in Normal and Insert mode
+map <up> <nop>
+map <down> <nop>
+map <left> <nop>
+map <right> <nop>
+imap <up> <nop>
+imap <down> <nop>
+imap <left> <nop>
+imap <right> <nop>
