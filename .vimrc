@@ -66,7 +66,7 @@ set linebreak
 set showbreak=+++
 
 " Line Wrap (number of cols)
-set textwidth=100
+set textwidth=0
 
 " Highlight matching brace
 set showmatch
