@@ -52,8 +52,10 @@ let g:syntastic_javascript_checkers = ['standard']
 let g:ycm_add_preview_to_completeopt = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
 
-" NERDTree on startup
+" NERDTree
+" -> on startup
 " autocmd vimenter * NERDTree
+let NERDTreeShowHidden=1
 
 " Show line numbers
 set number
