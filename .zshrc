@@ -82,3 +82,12 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+
+# Alias MacVim
+# alias 'mvim=/Applications/MacVim.app/Contents/MacOS/Vim'
+
+# Alias Vim
+alias 'vim=/usr/local/bin/vim'
+
+export NVM_DIR="/Users/delvedor/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
