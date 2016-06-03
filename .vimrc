@@ -31,7 +31,7 @@ set laststatus=2
 "set showtabline=2
 
 " Font
-set gfn=Menlo\ for\ Powerline:h15
+set gfn=Meslo\ LG\ M\ for\ Powerline
 
 " Syntastic
 set statusline+=%#warningmsg#
@@ -106,7 +106,6 @@ set smarttab
 " Number of spaces per Tab
 set softtabstop=2
 
-" Advanced
 " Show row and column ruler information
 set ruler
 
@@ -119,6 +118,13 @@ set undolevels=1000
 " Backspace behaviour
 set backspace=indent,eol,start
 
+" Automatically :write before running commands
+set autowrite
+
+" Open new split panes to right and bottom, which feels more natural
+set splitbelow
+set splitright
+
 " Disable arrow keys both in Normal and Insert mode
 map <up> <nop>
 map <down> <nop>
@@ -128,6 +134,17 @@ imap <up> <nop>
 imap <down> <nop>
 imap <left> <nop>
 imap <right> <nop>
+" Get off my lawn
+nnoremap <Left> :echoe " Use h "<CR>
+nnoremap <Right> :echoe " Use l "<CR>
+nnoremap <Up> :echoe " Use k "<CR>
+nnoremap <Down> :echoe " Use j "<CR>
+
+" Remap split navigation for quicker window movement
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-h> <C-w>h
+nnoremap <C-l> <C-w>l
 
 " Automatically fitting the quickfix window height
 au FileType qf call AdjustWindowHeight(1, 10)
