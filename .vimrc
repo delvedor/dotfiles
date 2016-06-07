@@ -7,13 +7,13 @@
 " - nerdtree
 " - tern_for_vim
 " - vim-colors-solarized
+" - vim-markdown
 
 " Pathogen plugin
 execute pathogen#infect()
 
 " Syntax on by default
 syntax on
-syntax enable
 
 " Color scheme
 " - Onedark
@@ -56,6 +56,9 @@ let g:ycm_autoclose_preview_window_after_completion = 1
 " -> on startup
 " autocmd vimenter * NERDTree
 let NERDTreeShowHidden=1
+
+" Markdown for Vim
+let g:markdown_enable_spell_checking = 0
 
 " Show line numbers
 set number
