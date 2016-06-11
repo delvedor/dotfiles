@@ -56,6 +56,7 @@ let g:ycm_autoclose_preview_window_after_completion = 1
 " -> on startup
 " autocmd vimenter * NERDTree
 let NERDTreeShowHidden=1
+let NERDTreeIgnore = ['\.swp$']
 
 " Markdown for Vim
 let g:markdown_enable_spell_checking = 0
