@@ -8,6 +8,7 @@
 " - tern_for_vim
 " - vim-colors-solarized
 " - vim-markdown
+" - vim-javascript
 
 " Pathogen plugin
 execute pathogen#infect()
