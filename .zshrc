@@ -20,6 +20,8 @@ plugins=(git, web-search, vi-mode)
 export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/Library/TeX/texbin"
 # export MANPATH="/usr/local/man:$MANPATH"
 
+export EDITOR=/usr/local/bin/vim
+
 source $ZSH/oh-my-zsh.sh
 # Alias Vim
 alias 'vim=/usr/local/bin/vim'
