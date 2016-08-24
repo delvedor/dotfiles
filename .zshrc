@@ -15,7 +15,7 @@ ENABLE_CORRECTION="true"
 ZSH_CUSTOM=~/.zsh_custom
 
 # Plugins
-plugins=(git, web-search, vi-mode)
+plugins=(git, web-search)
 
 export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/Library/TeX/texbin"
 # export MANPATH="/usr/local/man:$MANPATH"
