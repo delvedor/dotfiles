@@ -9,6 +9,7 @@
 " - vim-colors-solarized
 " - vim-markdown
 " - vim-javascript
+" - vim-devicons
 
 " Pathogen plugin
 execute pathogen#infect()
@@ -27,12 +28,15 @@ syntax on
 set background=dark
 colorscheme solarized
 let g:airline_theme='solarized'
+let g:airline_powerline_fonts = 1
 
 set laststatus=2
 "set showtabline=2
 
 " Font
-set gfn=Meslo\ LG\ M\ for\ Powerline
+set encoding=utf8
+set guifont=Droid\ Sans\ Mono\ for\ Powerline\ Plus\ Nerd\ File\ Types:h14
+" set gfn=Meslo\ LG\ M\ for\ Powerline
 
 " Syntastic
 set statusline+=%#warningmsg#
