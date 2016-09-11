@@ -11,6 +11,7 @@
 " - vim-markdown
 " - vim-javascript
 " - vim-devicons
+" - indentLine
 
 " Pathogen plugin
 execute pathogen#infect()
@@ -66,6 +67,11 @@ let NERDTreeIgnore = ['\.swp$']
 
 " Markdown for Vim
 let g:markdown_enable_spell_checking = 0
+
+" Indent lines
+let g:indentLine_enabled = 1
+let g:indentLine_color_term = 239
+let g:indentLine_char = '┆'
 
 " Show line numbers
 set number
