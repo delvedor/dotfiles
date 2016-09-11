@@ -4,6 +4,7 @@
 " - YouCompleteMe
 " - syntastic
 " - vim-airline
+" - vim-airline-themes
 " - nerdtree
 " - tern_for_vim
 " - vim-colors-solarized
