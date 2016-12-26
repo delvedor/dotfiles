@@ -18,18 +18,19 @@ execute pathogen#infect()
 
 " Syntax on by default
 syntax on
+set termguicolors
 
 " Color scheme
-" - Onedark
-" colorscheme onedark
-" let g:airline_theme='onedark'
+" - One
+set background=dark
+colorscheme one
+let g:airline_theme='one'
 " - Solarized
 " > Solarized light:
 " set background=light
 " > Solarized dark:
-set background=dark
-colorscheme solarized
-let g:airline_theme='solarized'
+" colorscheme solarized
+" let g:airline_theme='solarized'
 let g:airline_powerline_fonts = 1
 
 set laststatus=2
@@ -52,6 +53,7 @@ let g:syntastic_check_on_wq = 0
 let g:airline#extensions#syntastic#enabled = 1
 " Standard syntax style for Javascript (automatic fortmatting on save)
 let g:syntastic_javascript_checkers = ['standard']
+let g:syntastic_mode_map = { 'passive_filetypes': ['html'] }
 " autocmd bufwritepost *.js silent !standard % --format
 " set autoread
 
@@ -63,15 +65,17 @@ let g:ycm_autoclose_preview_window_after_completion = 1
 " -> on startup
 " autocmd vimenter * NERDTree
 let NERDTreeShowHidden=1
-let NERDTreeIgnore = ['\.swp$']
+let NERDTreeIgnore = ['\.swp$', '\.DS_Store$']
+nmap <silent> <C-\> :NERDTreeToggle<CR>
 
 " Markdown for Vim
 let g:markdown_enable_spell_checking = 0
 
 " Indent lines
-let g:indentLine_enabled = 1
-let g:indentLine_color_term = 239
-let g:indentLine_char = '┆'
+let g:indentLine_enabled = 0
+" let g:indentLine_color_term = 239
+" let g:indentLine_char = '┆'
+" let g:indentLine_faster = 1
 
 " Show line numbers
 set number
