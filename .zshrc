@@ -26,6 +26,9 @@ source $ZSH/oh-my-zsh.sh
 # Alias Vim
 alias 'vim=/usr/local/bin/vim'
 
+# Alias standard linter
+alias 'lint=snazzy'
+
 export NVM_DIR="/Users/delvedor/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
