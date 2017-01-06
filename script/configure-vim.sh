@@ -13,6 +13,9 @@ brew install macvim
 # simlink macvim version to vim
 ln -s /usr/local/bin/mvim vim
 
+# install cmake
+brew install cmake
+
 # install pathogen
 mkdir -p ~/.vim/autoload ~/.vim/bundle && \
 curl -LSso ~/.vim/autoload/pathogen.vim https://tpo.pe/pathogen.vim
@@ -23,11 +26,16 @@ cd ~/.vim/bundle
 # install YouCompleteMe
 git clone https://github.com/Valloric/YouCompleteMe.git
 cd ~/.vim/bundle/YouCompleteMe
+git submodule update --init --recursive
 ./install.py --clang-completer
 
 # install syntastic
 cd ~/.vim/bundle && \
 git clone --depth=1 https://github.com/vim-syntastic/syntastic.git
+
+# install one theme
+cd ~/.vim/bundle
+git clone https://github.com/rakr/vim-one.git
 
 # install vim-airline
 git clone https://github.com/vim-airline/vim-airline ~/.vim/bundle/vim-airline
