@@ -11,7 +11,6 @@
 " - vim-markdown
 " - vim-javascript
 " - vim-devicons
-" - indentLine
 
 " Pathogen plugin
 execute pathogen#infect()
