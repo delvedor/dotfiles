@@ -24,7 +24,7 @@ export EDITOR=/usr/local/bin/vim
 
 source $ZSH/oh-my-zsh.sh
 # Alias Vim
-alias 'vim=/usr/local/bin/vim'
+alias vim="mvim -v"
 
 # Alias standard linter
 alias 'lint=snazzy'
