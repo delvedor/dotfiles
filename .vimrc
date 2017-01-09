@@ -57,8 +57,10 @@ let g:syntastic_mode_map = { 'passive_filetypes': ['html'] }
 " set autoread
 
 " YouCompleteMe
+let g:ycm_auto_trigger = 1
 let g:ycm_add_preview_to_completeopt = 1
 let g:ycm_autoclose_preview_window_after_completion = 1
+let g:ycm_min_num_of_chars_for_completion = 3
 
 " NERDTree
 " -> on startup
