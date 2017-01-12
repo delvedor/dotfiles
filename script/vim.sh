@@ -63,6 +63,10 @@ git clone https://github.com/plasticboy/vim-markdown.git
 # install vim-javascript
 git clone https://github.com/pangloss/vim-javascript.git ~/.vim/bundle/vim-javascript
 
+# install ctrlp
+cd ~/.vim
+git clone https://github.com/ctrlpvim/ctrlp.vim.git bundle/ctrlp.vim
+
 # install vim-devicons
 git clone https://github.com/ryanoasis/vim-devicons ~/.vim/bundle/vim-devicons
 echo "Go to https://github.com/ryanoasis/vim-devicons for complete the vim-devicons configuration"
