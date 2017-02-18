@@ -29,6 +29,16 @@ alias vim="mvim -v"
 # Alias standard linter
 alias 'lint=snazzy'
 
+# Alias Git
+alias gp='git push'
+alias gl='git pull'
+alias gs='git status'
+alias gc='git commit -m'
+alias ga='git add'
+alias gd='git diff'
+alias gg='git log'
+alias go='git checkout'
+
 export NVM_DIR="/Users/delvedor/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
@@ -89,3 +99,7 @@ elif type compctl &>/dev/null; then
   compctl -K _npm_completion npm
 fi
 ###-end-npm-completion-###
+
+# tabtab source for electron-forge package
+# uninstall by removing these lines or running `tabtab uninstall electron-forge`
+[[ -f /Users/delvedor/.nvm/versions/node/v6.9.4/lib/node_modules/electron-forge/node_modules/tabtab/.completions/electron-forge.zsh ]] && . /Users/delvedor/.nvm/versions/node/v6.9.4/lib/node_modules/electron-forge/node_modules/tabtab/.completions/electron-forge.zsh
