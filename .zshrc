@@ -36,7 +36,7 @@ alias gs='git status'
 alias gc='git commit -m'
 alias ga='git add'
 alias gd='git diff'
-alias gg='git log'
+alias gg="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 alias go='git checkout'
 
 export NVM_DIR="/Users/delvedor/.nvm"
