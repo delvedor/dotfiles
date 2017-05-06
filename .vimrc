@@ -17,8 +17,20 @@
 execute pathogen#infect()
 
 " Syntax on by default
+" syntax on
+" set termguicolors
+
+" Display Settings
 syntax on
 set termguicolors
+
+syntax enable
+set t_Co=256
+
+" Disable Background Color Erase (tmux)
+if &term =~ '256color'
+  set t_ut=
+endif
 
 " Color scheme
 " - One
@@ -152,6 +164,9 @@ set autowrite
 " Open new split panes to right and bottom, which feels more natural
 set splitbelow
 set splitright
+
+" copy and paste from tmux
+set clipboard=unnamed
 
 " Disable arrow keys both in Normal and Insert mode
 map <up> <nop>
