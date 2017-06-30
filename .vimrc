@@ -166,7 +166,7 @@ set splitbelow
 set splitright
 
 " copy and paste from tmux
-set clipboard=unnamed
+" set clipboard=unnamed
 
 " Disable arrow keys both in Normal and Insert mode
 map <up> <nop>
@@ -188,6 +188,8 @@ nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
 nnoremap <C-h> <C-w>h
 nnoremap <C-l> <C-w>l
+
+:nnoremap <esc> :noh<return><esc>
 
 " Automatically fitting the quickfix window height
 au FileType qf call AdjustWindowHeight(1, 10)
