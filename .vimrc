@@ -16,10 +16,6 @@
 " Pathogen plugin
 execute pathogen#infect()
 
-" Syntax on by default
-" syntax on
-" set termguicolors
-
 " Display Settings
 syntax on
 set termguicolors
@@ -34,7 +30,15 @@ endif
 
 " Color scheme
 " - One
+colorscheme one
 set background=dark
+let g:airline_theme='one'
+" - Solarized
+" > Solarized light:
+" set background=light
+" > Solarized dark:
+" colorscheme solarized
+" let g:airline_theme='solarized'
 colorscheme one
 let g:airline_theme='one'
 " - Solarized
@@ -99,7 +103,6 @@ let g:indentLine_enabled = 0
 
 " Show line numbers
 set number
-set relativenumber
 
 " Break lines at word
 set linebreak
@@ -164,6 +167,13 @@ set autowrite
 " Open new split panes to right and bottom, which feels more natural
 set splitbelow
 set splitright
+
+" Helps with slow loading
+set lazyredraw
+
+" Activate the cursor line only during Insert mode
+set cursorline!
+autocmd InsertEnter,InsertLeave * set cul!
 
 " copy and paste from tmux
 " set clipboard=unnamed
