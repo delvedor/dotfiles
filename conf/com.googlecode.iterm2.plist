@@ -1318,6 +1318,13 @@
 	<real>1</real>
 	<key>GlobalKeyMap</key>
 	<dict>
+		<key>0x72-0x100000</key>
+		<dict>
+			<key>Action</key>
+			<integer>13</integer>
+			<key>Text</key>
+			<string></string>
+		</dict>
 		<key>0x9-0x40000</key>
 		<dict>
 			<key>Action</key>
@@ -1498,13 +1505,13 @@
 	<key>NSWindow Frame NSFontPanel</key>
 	<string>714 347 445 103 0 0 1920 1178 </string>
 	<key>NSWindow Frame SUUpdateAlert</key>
-	<string>1410 789 620 392 0 0 3440 1418 </string>
+	<string>1410 788 620 392 0 0 3440 1417 </string>
 	<key>NSWindow Frame SharedPreferences</key>
-	<string>859 253 918 512 0 0 1920 1200 </string>
+	<string>249 601 937 465 0 0 3440 1440 </string>
 	<key>NSWindow Frame iTerm Window 0</key>
-	<string>878 490 890 622 0 0 1920 1177 </string>
+	<string>239 555 890 622 0 0 3440 1417 </string>
 	<key>NSWindow Frame iTerm Window 1</key>
-	<string>956 323 890 622 0 0 1920 1177 </string>
+	<string>0 0 890 622 0 0 1920 1177 </string>
 	<key>NSWindow Frame iTerm Window 2</key>
 	<string>1104 771 890 622 0 0 3440 1417 </string>
 	<key>NSWindow Frame iTerm Window 3</key>
@@ -1843,7 +1850,7 @@
 				<real>0.96546226739883423</real>
 			</dict>
 			<key>Cursor Type</key>
-			<integer>0</integer>
+			<integer>2</integer>
 			<key>Custom Command</key>
 			<string>No</string>
 			<key>Custom Directory</key>
@@ -2467,7 +2474,7 @@
 	<key>SUHasLaunchedBefore</key>
 	<true/>
 	<key>SULastCheckTime</key>
-	<date>2017-03-24T18:22:40Z</date>
+	<date>2041-02-26T10:49:17Z</date>
 	<key>SUSendProfileInfo</key>
 	<false/>
 	<key>SavePasteHistory</key>
@@ -2517,6 +2524,6 @@
 	<key>findRegex_iTerm</key>
 	<false/>
 	<key>iTerm Version</key>
-	<string>3.0.14</string>
+	<string>3.0.15</string>
 </dict>
 </plist>
