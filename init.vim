@@ -1,6 +1,7 @@
+" Plugins
 call plug#begin('~/.local/share/nvim/plugged')
 
-Plug 'scrooloose/nerdtree', { 'on':  'NERDTreeToggle' }
+Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
 Plug 'vim-syntastic/syntastic'
 Plug 'ryanoasis/vim-devicons'
 Plug 'vim-airline/vim-airline'
@@ -12,9 +13,10 @@ Plug 'roxma/nvim-cm-tern', {'do': 'npm install'}
 Plug 'ctrlpvim/ctrlp.vim'
 Plug 'tpope/vim-sensible'
 Plug 'godlygeek/tabular'
-Plug 'plasticboy/vim-markdown'
+Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
+Plug 'junegunn/goyo.vim', { 'on': 'Goyo' }
+Plug 'junegunn/limelight.vim', { 'on': 'Limelight' }
 
-" Initialize plugin system
 call plug#end()
 
 " Display Settings
