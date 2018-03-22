@@ -10,6 +10,8 @@ CASE_SENSITIVE="true"
 # Command auto-correction.
 ENABLE_CORRECTION="true"
 
+# colors for tmux
+if [[ $TERM == xterm ]]; then TERM=xterm-256color; fi
 
 # Custom folder
 ZSH_CUSTOM=~/.zsh_custom
@@ -18,16 +20,26 @@ ZSH_CUSTOM=~/.zsh_custom
 plugins=(git, web-search)
 
 export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/Library/TeX/texbin"
+export PATH="/usr/local/opt/curl/bin:$PATH"
 # export MANPATH="/usr/local/man:$MANPATH"
 
-export EDITOR=/usr/local/bin/vim
+# Default editor
+export EDITOR=/usr/local/bin/nvim
+
+# Android SDK
+export ANDROID_HOME=/Users/delvedor/Library/Android/sdk
 
 source $ZSH/oh-my-zsh.sh
 # Alias Vim
-alias vim="mvim -v"
+alias vim="nvim"
+alias vi="nvim"
+
+alias tmux="tmux -2"
 
 # Alias standard linter
 alias 'lint=snazzy'
+
+alias python='python3'
 
 # Alias Git
 alias gp='git push'
