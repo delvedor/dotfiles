@@ -6,7 +6,7 @@ Plug 'vim-syntastic/syntastic'
 Plug 'ryanoasis/vim-devicons'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
-Plug 'joshdick/onedark.vim'
+Plug 'rakr/vim-one'
 Plug 'pangloss/vim-javascript'
 Plug 'roxma/nvim-completion-manager'
 Plug 'roxma/nvim-cm-tern', {'do': 'npm install'}
@@ -30,8 +30,8 @@ if &term =~ '256color'
 endif
 
 " Color scheme
-let g:airline_theme='onedark'
-colorscheme onedark
+let g:airline_theme='one'
+colorscheme one
 set background=dark
 let g:airline_powerline_fonts = 1
 
@@ -54,7 +54,7 @@ let g:syntastic_javascript_checkers = ['standard']
 let g:syntastic_mode_map = { 'passive_filetypes': ['html'] }
 
 " ctrlp ignore
-let g:ctrlp_custom_ignore = '\v[\/](node_modules|target|dist)|(\.(swp|ico|git|svn))$'
+let g:ctrlp_custom_ignore = '\v[\/](node_modules|target|dist|build)|(\.(swp|ico|git|svn))$'
 
 " Font
 set encoding=utf8
@@ -148,8 +148,6 @@ map <up> <nop>
 map <down> <nop>
 map <left> <nop>
 map <right> <nop>
-imap <up> <nop>
-imap <down> <nop>
 imap <left> <nop>
 imap <right> <nop>
 " Get off my lawn
@@ -158,12 +156,23 @@ nnoremap <Right> :echoe " Use l "<CR>
 nnoremap <Up> :echoe " Use k "<CR>
 nnoremap <Down> :echoe " Use j "<CR>
 
+" Focus mode
+:command Focus Goyo | Limelight
+:command ExitFocus Goyo! | Limelight!
+
 " Remap split navigation for quicker window movement
 nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
 nnoremap <C-h> <C-w>h
 nnoremap <C-l> <C-w>l
 
+" Because my left hand is lazy and keeps shift pressed
+:command WQ wq
+:command Wq wq
+:command W w
+:command Q q
+
+" Avoids to type ':noh' after a search
 :nnoremap <esc> :noh<return><esc>
 
 " Automatically fitting the quickfix window height
