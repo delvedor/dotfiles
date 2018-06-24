@@ -2,7 +2,7 @@
 call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
-Plug 'vim-syntastic/syntastic'
+Plug 'w0rp/ale'
 Plug 'ryanoasis/vim-devicons'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
@@ -40,21 +40,39 @@ let NERDTreeShowHidden=1
 let NERDTreeIgnore = ['\.swp$', '\.DS_Store$']
 nmap <silent> <C-\> :NERDTreeToggle<CR>
 
-" Syntastic
-set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
-set statusline+=%*
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_wq = 0
-let g:airline#extensions#syntastic#enabled = 1
-" Standard syntax style for Javascript (automatic fortmatting on save)
-let g:syntastic_javascript_checkers = ['standard']
-let g:syntastic_mode_map = { 'passive_filetypes': ['html'] }
+" Ale
+let g:ale_lint_on_text_changed = 'never'
+let g:ale_completion_enabled = 0
+let g:ale_set_highlights = 1
+let g:ale_set_quickfix = 1
+let g:ale_set_loclist = 0
+let g:ale_fix_on_save = 1
+let g:ale_open_list = 1
+let g:ale_fixers = {
+\   'javascript': []
+\}
+let g:ale_linters = {
+\   'javascript': ['standard'],
+\}
+highlight ALEStyleWarning ctermfg=Black
+highlight ALEStyleWarning ctermbg=Yellow
+highlight ALEWarning ctermfg=Black
+highlight ALEWarning ctermbg=Yellow
+highlight ALEStyleError ctermfg=Black
+highlight ALEStyleError ctermbg=Red
+highlight ALEError ctermfg=Black
+highlight ALEError ctermbg=Red
+" Show error in the statusline
+let g:airline#extensions#ale#enabled = 1
+let g:ale_list_window_size = 5
 
 " ctrlp ignore
 let g:ctrlp_custom_ignore = '\v[\/](node_modules|target|dist|build)|(\.(swp|ico|git|svn))$'
+
+" Disable default folding in markdown files
+let g:vim_markdown_folding_disabled = 1
+
+let g:goyo_width = 120
 
 " Font
 set encoding=utf8
@@ -140,8 +158,10 @@ set lazyredraw
 set cursorline!
 autocmd InsertEnter,InsertLeave * set cul!
 
-" copy and paste from tmux
-" set clipboard=unnamed
+" Reload files changed outside vim
+set autoread
+" Reload file with external changes on focus
+au FocusGained * :checktime
 
 " Disable arrow keys both in Normal and Insert mode
 map <up> <nop>
@@ -158,7 +178,7 @@ nnoremap <Down> :echoe " Use j "<CR>
 
 " Focus mode
 :command Focus Goyo | Limelight
-:command ExitFocus Goyo! | Limelight!
+:command FocusClose Goyo! | Limelight!
 
 " Remap split navigation for quicker window movement
 nnoremap <C-j> <C-w>j
@@ -175,8 +195,16 @@ nnoremap <C-l> <C-w>l
 " Avoids to type ':noh' after a search
 :nnoremap <esc> :noh<return><esc>
 
+" Turn Off Swap Files
+set noswapfile
+" Disable backup files
+set nobackup
+set nowritebackup
+
 " Automatically fitting the quickfix window height
 au FileType qf call AdjustWindowHeight(1, 10)
 function! AdjustWindowHeight(minheight, maxheight)
   exe max([min([line("$"), a:maxheight]), a:minheight]) . "wincmd _"
 endfunction
+" Automatically reload vimrc when it's saved
+autocmd! BufWritePost vimrc so ~/.config/nvim/init.vim"
