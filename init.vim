@@ -1,21 +1,21 @@
 " Plugins
 call plug#begin('~/.local/share/nvim/plugged')
 
-Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
 Plug 'w0rp/ale'
 Plug 'ryanoasis/vim-devicons'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'rakr/vim-one'
 Plug 'pangloss/vim-javascript'
+Plug 'tpope/vim-sensible'
 Plug 'roxma/nvim-completion-manager'
 Plug 'roxma/nvim-cm-tern', {'do': 'npm install'}
-Plug 'ctrlpvim/ctrlp.vim'
-Plug 'tpope/vim-sensible'
-Plug 'godlygeek/tabular'
-Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
+Plug 'tpope/vim-commentary', {'on': '<Plug>Commentary'}
+Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
+Plug 'ctrlpvim/ctrlp.vim', { 'on': 'CtrlP' }
 Plug 'junegunn/goyo.vim', { 'on': 'Goyo' }
 Plug 'junegunn/limelight.vim', { 'on': 'Limelight' }
+Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
 
 call plug#end()
 
@@ -66,8 +66,16 @@ highlight ALEError ctermbg=Red
 let g:airline#extensions#ale#enabled = 1
 let g:ale_list_window_size = 5
 
-" ctrlp ignore
+" Commentary
+map  gc  <Plug>Commentary
+nmap gcc <Plug>CommentaryLine
+
+" ctrlp
+nmap <silent> <C-p> :CtrlP<CR>
+" default ignore
 let g:ctrlp_custom_ignore = '\v[\/](node_modules|target|dist|build)|(\.(swp|ico|git|svn))$'
+" ignore what is inside the .gitignore
+let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
 
 " Disable default folding in markdown files
 let g:vim_markdown_folding_disabled = 1
