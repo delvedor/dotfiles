@@ -44,7 +44,8 @@ nmap <silent> <C-\> :NERDTreeToggle<CR>
 let g:ale_lint_on_text_changed = 'never'
 let g:ale_completion_enabled = 0
 let g:ale_set_highlights = 1
-let g:ale_fix_on_save = 1
+let g:ale_sign_error = '●'
+let g:ale_sign_warning = '●'
 let g:ale_fixers = {
 \   'javascript': []
 \}
@@ -61,7 +62,6 @@ highlight ALEError ctermfg=Black
 highlight ALEError ctermbg=Red
 " Show error in the statusline
 let g:airline#extensions#ale#enabled = 1
-let g:ale_list_window_size = 5
 
 " Commentary
 map  gc  <Plug>Commentary
@@ -85,6 +85,7 @@ set guifont=Droid\ Sans\ Mono\ for\ Powerline\ Plus\ Nerd\ File\ Types:h14
 
 " Show line numbers
 set number
+set numberwidth=2
 
 " Break lines at word
 set linebreak
