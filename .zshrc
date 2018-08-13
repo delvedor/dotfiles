@@ -36,6 +36,10 @@ alias vi="nvim"
 
 alias tmux="tmux -2"
 
+# Alias aws stuffs stuff
+alias aws="/Users/delvedor/Library/Python/3.6/bin/aws"
+alias sam="/Users/delvedor/Library/Python/3.6/bin/sam"
+
 # Alias standard linter
 alias 'lint=snazzy'
 
@@ -43,6 +47,7 @@ alias python='python3'
 
 # Alias Git
 alias gp='git push'
+alias gpf='git push --force-with-lease'
 alias gl='git pull'
 alias gs='git status'
 alias gc='git commit -m'
