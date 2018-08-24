@@ -8,8 +8,7 @@ Plug 'vim-airline/vim-airline-themes'
 Plug 'rakr/vim-one'
 Plug 'pangloss/vim-javascript'
 Plug 'tpope/vim-sensible'
-Plug 'roxma/nvim-completion-manager'
-Plug 'roxma/nvim-cm-tern', {'do': 'npm install'}
+Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'tpope/vim-commentary', {'on': '<Plug>Commentary'}
 Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
 Plug 'ctrlpvim/ctrlp.vim', { 'on': 'CtrlP' }
@@ -66,6 +65,10 @@ let g:airline#extensions#ale#enabled = 1
 " Commentary
 map  gc  <Plug>Commentary
 nmap gcc <Plug>CommentaryLine
+
+" deoplete
+let g:python3_host_prog = '/usr/local/bin/python3'
+let g:deoplete#enable_at_startup = 1
 
 " ctrlp
 nmap <silent> <C-p> :CtrlP<CR>
