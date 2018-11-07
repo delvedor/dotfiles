@@ -36,6 +36,8 @@ alias vi="nvim"
 
 alias tmux="tmux -2"
 
+alias c="pygmentize -O style=vim -f console256 -g"
+
 # Alias aws stuffs stuff
 alias aws="/Users/delvedor/Library/Python/3.6/bin/aws"
 alias sam="/Users/delvedor/Library/Python/3.6/bin/sam"
@@ -120,3 +122,4 @@ fi
 # tabtab source for electron-forge package
 # uninstall by removing these lines or running `tabtab uninstall electron-forge`
 [[ -f /Users/delvedor/.nvm/versions/node/v6.9.4/lib/node_modules/electron-forge/node_modules/tabtab/.completions/electron-forge.zsh ]] && . /Users/delvedor/.nvm/versions/node/v6.9.4/lib/node_modules/electron-forge/node_modules/tabtab/.completions/electron-forge.zsh
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
