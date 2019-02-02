@@ -23,6 +23,11 @@ export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/Library/
 export PATH="/usr/local/opt/curl/bin:$PATH"
 # export MANPATH="/usr/local/man:$MANPATH"
 
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+export FZF_DEFAULT_COMMAND='ag -g ""'
+
 # Default editor
 export EDITOR=/usr/local/bin/nvim
 
@@ -34,9 +39,11 @@ source $ZSH/oh-my-zsh.sh
 alias vim="nvim"
 alias vi="nvim"
 
-alias tmux="tmux -2"
+# alias tmux="tmux -2"
+# force tmux utf-8
+alias tmux="tmux -u"
 
-alias c="pygmentize -O style=vim -f console256 -g"
+alias c="bat"
 
 # Alias aws stuffs stuff
 alias aws="/Users/delvedor/Library/Python/3.6/bin/aws"
