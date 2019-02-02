@@ -7,11 +7,13 @@ Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'rakr/vim-one'
 Plug 'pangloss/vim-javascript'
+Plug 'HerringtonDarkholme/yats.vim'
 Plug 'tpope/vim-sensible'
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'tpope/vim-commentary', {'on': '<Plug>Commentary'}
 Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
-Plug 'ctrlpvim/ctrlp.vim', { 'on': 'CtrlP' }
+Plug '/usr/local/opt/fzf'
+Plug 'junegunn/fzf.vim'
 Plug 'junegunn/goyo.vim', { 'on': 'Goyo' }
 Plug 'junegunn/limelight.vim', { 'on': 'Limelight' }
 Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
@@ -50,7 +52,7 @@ let g:ale_fixers = {
 \   'javascript': []
 \}
 let g:ale_linters = {
-\   'javascript': ['standard'],
+\   'javascript': ['standard']
 \}
 highlight ALEStyleWarning ctermfg=Black
 highlight ALEStyleWarning ctermbg=Yellow
@@ -162,6 +164,8 @@ set splitbelow
 set splitright
 
 " Helps with slow loading
+set nocompatible
+set ttyfast
 set lazyredraw
 
 " Activate the cursor line only during Insert mode
@@ -195,6 +199,10 @@ nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
 nnoremap <C-h> <C-w>h
 nnoremap <C-l> <C-w>l
+
+" Fuzzy finder
+nnoremap <C-f> :Ag<Cr>
+nnoremap <C-p> :Files<Cr>
 
 " Because my left hand is lazy and keeps shift pressed
 :command WQ wq
