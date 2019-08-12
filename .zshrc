@@ -17,7 +17,7 @@ if [[ $TERM == xterm ]]; then TERM=xterm-256color; fi
 ZSH_CUSTOM=~/.zsh_custom
 
 # Plugins
-plugins=(git, web-search)
+plugins=(git web-search)
 
 export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/Library/TeX/texbin"
 export PATH="/usr/local/opt/curl/bin:$PATH"
