@@ -1,5 +1,12 @@
 # Path to your oh-my-zsh installation.
-export ZSH=/Users/delvedor/.oh-my-zsh
+case "$OSTYPE" in
+  darwin*)
+    export ZSH=/Users/delvedor/.oh-my-zsh
+  ;;
+  linux*)
+    export ZSH=/home/delvedor/.oh-my-zsh
+  ;;
+esac
 
 # Theme conf
 ZSH_THEME="avit"
@@ -32,22 +39,21 @@ export FZF_DEFAULT_COMMAND='ag -g ""'
 export EDITOR=/usr/local/bin/nvim
 
 # Android SDK
-export ANDROID_HOME=/Users/delvedor/Library/Android/sdk
+case "$OSTYPE" in
+  darwin*)
+    export ANDROID_HOME=/Users/delvedor/Library/Android/sdk
+  ;;
+esac
 
 source $ZSH/oh-my-zsh.sh
 # Alias Vim
 alias vim="nvim"
 alias vi="nvim"
 
-# alias tmux="tmux -2"
 # force tmux utf-8
 alias tmux="tmux -u"
 
 alias c="bat"
-
-# Alias aws stuffs stuff
-alias aws="/Users/delvedor/Library/Python/3.6/bin/aws"
-alias sam="/Users/delvedor/Library/Python/3.6/bin/sam"
 
 # Alias standard linter
 alias 'lint=snazzy'
@@ -66,7 +72,14 @@ alias gg="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %
 alias go='git checkout'
 alias pr='!f() { git fetch -fu ${2:-upstream} refs/pull/$1/head:pr/$1 && git checkout pr/$1; }; f'
 
-export NVM_DIR="/Users/delvedor/.nvm"
+case "$OSTYPE" in
+  darwin*)
+    export NVM_DIR="/Users/delvedor/.nvm"
+  ;;
+  linux*)
+    export NVM_DIR="/home/delvedor/.nvm"
+  ;;
+esac
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
 ###-begin-npm-completion-###
