@@ -1,6 +1,7 @@
 " Plugins
 call plug#begin('~/.local/share/nvim/plugged')
 
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'w0rp/ale'
 Plug 'ryanoasis/vim-devicons'
 Plug 'vim-airline/vim-airline'
@@ -9,7 +10,7 @@ Plug 'rakr/vim-one'
 Plug 'pangloss/vim-javascript'
 Plug 'HerringtonDarkholme/yats.vim'
 Plug 'tpope/vim-sensible'
-Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
+" Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'tpope/vim-commentary', {'on': '<Plug>Commentary'}
 Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
 Plug '/usr/local/opt/fzf'
@@ -33,6 +34,8 @@ endif
 " Color scheme
 let g:airline_theme='one'
 colorscheme one
+" set to 'light' to use the light version
+" of the color scheme
 set background=dark
 let g:airline_powerline_fonts = 1
 let g:SnazzyTransparent = 1
@@ -44,7 +47,7 @@ nmap <silent> <C-\> :NERDTreeToggle<CR>
 
 " Ale
 let g:ale_lint_on_text_changed = 'never'
-let g:ale_completion_enabled = 0
+let g:ale_completion_enabled = 1
 let g:ale_set_highlights = 1
 let g:ale_sign_error = '●'
 let g:ale_sign_warning = '●'
@@ -52,7 +55,8 @@ let g:ale_fixers = {
 \   'javascript': []
 \}
 let g:ale_linters = {
-\   'javascript': ['standard']
+\   'javascript': ['standard'],
+\   'typescript': ['standard']
 \}
 highlight ALEStyleWarning ctermfg=Black
 highlight ALEStyleWarning ctermbg=Yellow
@@ -70,8 +74,8 @@ map  gc  <Plug>Commentary
 nmap gcc <Plug>CommentaryLine
 
 " deoplete
-let g:python3_host_prog = '/usr/local/bin/python3'
-let g:deoplete#enable_at_startup = 1
+" let g:python3_host_prog = '/usr/local/bin/python3'
+" let g:deoplete#enable_at_startup = 1
 
 " ctrlp
 nmap <silent> <C-p> :CtrlP<CR>
