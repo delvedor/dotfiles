@@ -67,7 +67,7 @@ alias gl='git pull'
 alias gs='git status'
 alias gc='git commit -m'
 alias ga='git add'
-alias gd='git diff | delta'
+alias gd='f(){ git diff "$@" | delta;  unset -f f; }; f'
 alias gg="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 alias go='git checkout'
 alias pr='!f() { git fetch -fu ${2:-upstream} refs/pull/$1/head:pr/$1 && git checkout pr/$1; }; f'
