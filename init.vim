@@ -18,6 +18,7 @@ Plug 'junegunn/fzf.vim'
 Plug 'junegunn/goyo.vim', { 'on': 'Goyo' }
 Plug 'junegunn/limelight.vim', { 'on': 'Limelight' }
 Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
+Plug 'editorconfig/editorconfig-vim'
 
 call plug#end()
 
