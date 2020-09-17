@@ -10,15 +10,13 @@ Plug 'rakr/vim-one'
 Plug 'pangloss/vim-javascript'
 Plug 'HerringtonDarkholme/yats.vim'
 Plug 'tpope/vim-sensible'
-" Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'tpope/vim-commentary', {'on': '<Plug>Commentary'}
 Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
 Plug '/usr/local/opt/fzf'
 Plug 'junegunn/fzf.vim'
-Plug 'junegunn/goyo.vim', { 'on': 'Goyo' }
-Plug 'junegunn/limelight.vim', { 'on': 'Limelight' }
 Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
 Plug 'editorconfig/editorconfig-vim'
+Plug 'pechorin/any-jump.vim', { 'on': 'AnyJump' }
 
 call plug#end()
 
@@ -77,6 +75,11 @@ nmap gcc <Plug>CommentaryLine
 " deoplete
 " let g:python3_host_prog = '/usr/local/bin/python3'
 " let g:deoplete#enable_at_startup = 1
+
+" any-jump
+let g:any_jump_disable_default_keybindings = 1
+" Normal mode: Jump to definition under cursor
+nnoremap <C-o> :AnyJump<Cr>
 
 " ctrlp
 nmap <silent> <C-p> :CtrlP<CR>
