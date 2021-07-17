@@ -12,22 +12,30 @@ Plug 'HerringtonDarkholme/yats.vim'
 Plug 'tpope/vim-sensible'
 Plug 'tpope/vim-commentary', {'on': '<Plug>Commentary'}
 Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
-Plug '/usr/local/opt/fzf'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
 Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
 Plug 'editorconfig/editorconfig-vim'
 Plug 'pechorin/any-jump.vim', { 'on': 'AnyJump' }
+Plug 'evanleck/vim-svelte', { 'branch': 'main' }
 
 call plug#end()
 
 " Display Settings
 syntax on
-set termguicolors
+if has('termguicolors')
+  set termguicolors
+endif
 syntax enable
 set t_Co=256
 " Disable Background Color Erase (tmux)
 if &term =~ '256color'
   set t_ut=
+endif
+
+" git diffing algorithms
+if has('nvim-0.3.2') || has("patch-8.1.0360")
+  set diffopt=filler,internal,algorithm:histogram,indent-heuristic
 endif
 
 " Color scheme
@@ -55,7 +63,7 @@ let g:ale_fixers = {
 \}
 let g:ale_linters = {
 \   'javascript': ['standard'],
-\   'typescript': ['standard']
+\   'typescript': ['ts-standard']
 \}
 highlight ALEStyleWarning ctermfg=Black
 highlight ALEStyleWarning ctermbg=Yellow
