@@ -6,7 +6,8 @@ Plug 'w0rp/ale'
 Plug 'ryanoasis/vim-devicons'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
-Plug 'rakr/vim-one'
+" Plug 'rakr/vim-one'
+Plug 'tomasiser/vim-code-dark'
 Plug 'pangloss/vim-javascript'
 Plug 'HerringtonDarkholme/yats.vim'
 Plug 'tpope/vim-sensible'
@@ -39,13 +40,14 @@ if has('nvim-0.3.2') || has("patch-8.1.0360")
 endif
 
 " Color scheme
-let g:airline_theme='one'
-colorscheme one
+" let g:airline_theme='one'
+" colorscheme one
+let g:airline_theme = 'codedark'
+colorscheme codedark
 " set to 'light' to use the light version
 " of the color scheme
 set background=dark
 let g:airline_powerline_fonts = 1
-let g:SnazzyTransparent = 1
 
 " NERDTree
 let NERDTreeShowHidden=1
