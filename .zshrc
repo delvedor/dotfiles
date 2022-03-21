@@ -28,6 +28,7 @@ plugins=(git web-search)
 
 export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/Library/TeX/texbin:$HOME/.cargo/bin"
 export PATH="/usr/local/opt/curl/bin:$PATH"
+export PATH="$PATH:/opt/homebrew/bin/"
 # export MANPATH="/usr/local/man:$MANPATH"
 
 export LANG=en_US.UTF-8
