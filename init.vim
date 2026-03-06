@@ -52,7 +52,7 @@ let g:airline_powerline_fonts = 1
 " NERDTree
 let NERDTreeShowHidden=1
 let NERDTreeIgnore = ['\.swp$', '\.DS_Store$']
-nmap <silent> <C-\> :NERDTreeToggle<CR>
+nmap <silent> <C-Esc> :NERDTreeToggle<CR>
 
 " Ale
 let g:ale_lint_on_text_changed = 'never'
