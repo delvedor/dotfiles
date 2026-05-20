@@ -1,0 +1,32 @@
+{
+  "enabled": true,
+  "comment": "Read anywhere (except blocklist), Write only in cwd and subdirectories",
+  "network": {
+    "allowedDomains": [],
+    "deniedDomains": []
+  },
+  "filesystem": {
+    "denyRead": [
+      "~/.ssh",
+      "~/.aws",
+      "~/.gnupg",
+      "~/.npmrc",
+      "~/.config/gh/hosts.yml",
+      "~/.gitconfig",
+      ".env",
+      "${AGENT_DIR}/extensions/sandbox",
+      "${AGENT_DIR}/extensions/guard.ts"
+    ],
+    "allowWrite": [".", "${AGENT_DIR}"],
+    "denyWrite": [
+      ".env",
+      ".env.*",
+      "*.pem",
+      "*.key",
+      "id_rsa",
+      "id_ed25519",
+      "${AGENT_DIR}/extensions/sandbox",
+      "${AGENT_DIR}/extensions/guard.ts"
+    ]
+  }
+}
