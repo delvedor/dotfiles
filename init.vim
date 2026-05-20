@@ -3,24 +3,93 @@ call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'w0rp/ale'
-Plug 'ryanoasis/vim-devicons'
-Plug 'vim-airline/vim-airline'
-Plug 'vim-airline/vim-airline-themes'
+" Plug 'ryanoasis/vim-devicons'
+" Plug 'vim-airline/vim-airline'
+" Plug 'vim-airline/vim-airline-themes'
 " Plug 'rakr/vim-one'
-Plug 'tomasiser/vim-code-dark'
+" Plug 'tomasiser/vim-code-dark'
+" Icons for both plugins (mandatory for Nerd Fonts)
+Plug 'nvim-tree/nvim-web-devicons'
+Plug 'nvim-lualine/lualine.nvim'
+Plug 'nvim-tree/nvim-tree.lua'
+Plug 'Mofiqul/dracula.nvim'
 Plug 'pangloss/vim-javascript'
 Plug 'HerringtonDarkholme/yats.vim'
 Plug 'tpope/vim-sensible'
 Plug 'tpope/vim-commentary', {'on': '<Plug>Commentary'}
-Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
-Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
-Plug 'junegunn/fzf.vim'
+" Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
+" Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+" Plug 'junegunn/fzf.vim'
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-telescope/telescope.nvim'
+Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'make' }
 Plug 'plasticboy/vim-markdown', { 'for': 'markdown' }
 Plug 'editorconfig/editorconfig-vim'
 Plug 'pechorin/any-jump.vim', { 'on': 'AnyJump' }
 Plug 'evanleck/vim-svelte', { 'branch': 'main' }
 
 call plug#end()
+
+" --- 3. Lua Plugin Configuration ---
+lua << EOF
+-- Configure Lualine (Status bar at the bottom)
+require('lualine').setup {
+  options = {
+    theme = 'dracula', -- Matches the colorscheme above
+    section_separators = { left = '', right = '' },
+    component_separators = { left = '', right = '' },
+  }
+}
+
+-- Configure Nvim-Tree (File explorer)
+require("nvim-tree").setup({
+  sort_by = "case_sensitive",
+  view = {
+    width = 30,
+    relativenumber = true, -- Shows relative numbers in the tree
+  },
+  renderer = {
+    group_empty = true,
+    icons = {
+      show = {
+        file = true,
+        folder = true,
+        folder_arrow = true,
+        git = true,
+      },
+    },
+  },
+  filters = {
+    dotfiles = false, -- Set to true to hide .env, .git, etc.
+  },
+})
+
+-- Configure Telescope
+require('telescope').setup{
+  defaults = {
+    prompt_prefix = "   ",
+    selection_caret = "❯ ",
+    path_display = { "truncate" },
+    sorting_strategy = "ascending",
+    layout_config = {
+      horizontal = { prompt_position = "top", preview_width = 0.55 },
+      vertical = { mirror = false },
+      width = 0.87,
+      height = 0.80,
+      preview_cutoff = 120,
+    },
+  },
+  pickers = {
+    find_files = {
+      theme = "dropdown", -- A cleaner, centered look for files
+      previewer = true,
+    }
+  }
+}
+
+-- Load fzf extension if you installed it
+pcall(require('telescope').load_extension, 'fzf')
+EOF
 
 " Display Settings
 syntax on
@@ -42,17 +111,21 @@ endif
 " Color scheme
 " let g:airline_theme='one'
 " colorscheme one
-let g:airline_theme = 'codedark'
-colorscheme codedark
+" let g:airline_theme = 'codedark'
+" colorscheme codedark
+" let g:airline_theme = 'base16_dracula'
+colorscheme dracula
 " set to 'light' to use the light version
 " of the color scheme
 set background=dark
 let g:airline_powerline_fonts = 1
 
 " NERDTree
-let NERDTreeShowHidden=1
-let NERDTreeIgnore = ['\.swp$', '\.DS_Store$']
-nmap <silent> <C-Esc> :NERDTreeToggle<CR>
+" let NERDTreeShowHidden=1
+" let NERDTreeIgnore = ['\.swp$', '\.DS_Store$']
+" nmap <silent> <C-Esc> :NERDTreeToggle<CR>
+nmap <silent> <C-Esc> :NvimTreeToggle<CR>
+
 
 " Ale
 let g:ale_lint_on_text_changed = 'never'
@@ -105,7 +178,9 @@ let g:goyo_width = 120
 
 " Font
 set encoding=utf8
-set guifont=Droid\ Sans\ Mono\ for\ Powerline\ Plus\ Nerd\ File\ Types:h14
+" set guifont=Droid\ Sans\ Mono\ for\ Powerline\ Plus\ Nerd\ File\ Types:h14
+set guifont=MesloLGS\ Nerd\ Font\ Mono:14
+
 
 " Show line numbers
 set number
@@ -219,8 +294,9 @@ nnoremap <C-h> <C-w>h
 nnoremap <C-l> <C-w>l
 
 " Fuzzy finder
-nnoremap <C-f> :Ag<Cr>
-nnoremap <C-p> :Files<Cr>
+" nnoremap <C-f> :Ag<Cr>
+" nnoremap <C-p> :Files<Cr>
+nnoremap <C-f> <cmd>Telescope find_files<cr>
 
 " Because my left hand is lazy and keeps shift pressed
 :command WQ wq
