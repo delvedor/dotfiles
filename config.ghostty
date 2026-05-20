@@ -1,0 +1,4 @@
+theme = Dracula
+font-size = 14
+font-family = "MesloLGS Nerd Font Mono"
+shell-integration = fish
