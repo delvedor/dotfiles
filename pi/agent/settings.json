@@ -1,0 +1,43 @@
+{
+  "lastChangelogVersion": "0.75.4",
+  "defaultProvider": "litellm",
+  "defaultModel": "llm-gateway/claude-sonnet-4-6",
+  "defaultThinkingLevel": "high",
+  "theme": "dracula",
+  "packages": [
+    "npm:pi-subagents",
+    "npm:pi-provider-litellm"
+  ],
+  "subagents": {
+    "agentOverrides": {
+      "scout": {
+        "model": "llm-gateway/claude-haiku-4-5",
+        "thinking": "low",
+        "fallbackModels": [
+          "openai/gpt-5.4-mini"
+        ]
+      },
+      "reviewer": {
+        "model": "llm-gateway/claude-opus-4-7",
+        "thinking": "xhigh",
+        "fallbackModels": [
+          "llm-gateway/Kimi-K2.6"
+        ]
+      },
+      "planner": {
+        "model": "llm-gateway/claude-opus-4-7",
+        "thinking": "xhigh",
+        "fallbackModels": [
+          "llm-gateway/Kimi-K2.6"
+        ]
+      },
+      "oracle": {
+        "model": "llm-gateway/claude-opus-4-7",
+        "thinking": "xhigh",
+        "fallbackModels": [
+          "llm-gateway/Kimi-K2.6"
+        ]
+      }
+    }
+  }
+}

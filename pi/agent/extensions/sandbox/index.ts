@@ -145,13 +145,19 @@ function isPathBlocked(targetPath: string, blockedPaths: string[], cwd: string):
 	const resolvedTarget = resolve(cwd, expandPath(targetPath));
 
 	for (const blocked of blockedPaths) {
-		// For relative paths (like ".env"), match anywhere
+		// For relative paths (like ".env" or ".pi/extensions"), resolve against cwd
+		// and use the same prefix-check logic as absolute paths.
 		if (!blocked.startsWith("~/") && !blocked.startsWith("${") && !isAbsolute(blocked)) {
-			if (targetPath.endsWith(blocked) || targetPath === blocked) {
+			const resolvedBlocked = resolve(cwd, expandPath(blocked));
+			const rel = relative(resolvedBlocked, resolvedTarget);
+
+			// Target equals the blocked path, or is inside it
+			if (resolvedTarget === resolvedBlocked || (!rel.startsWith("..") && rel !== "")) {
 				return { blocked: true, matched: blocked };
 			}
-			// Also check resolved basename
-			if (resolvedTarget.split("/").pop() === blocked) {
+
+			// Also match by basename for single-segment patterns like ".env"
+			if (!blocked.includes("/") && resolvedTarget.split("/").pop() === blocked) {
 				return { blocked: true, matched: blocked };
 			}
 			continue;
