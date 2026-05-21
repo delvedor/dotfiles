@@ -2,7 +2,13 @@
   "enabled": true,
   "comment": "Read anywhere (except blocklist), Write only in cwd and subdirectories",
   "network": {
-    "allowedDomains": [],
+    "allowedDomains": [
+      "*.com", "*.org", "*.net", "*.io", "*.dev", "*.co", "*.ai",
+      "*.app", "*.cloud", "*.run", "*.sh", "*.xyz", "*.tech", "*.tools",
+      "*.so", "*.me", "*.us", "*.uk", "*.eu", "*.de", "*.fr", "*.it",
+      "*.edu", "*.gov", "*.info", "*.cc", "*.ly", "*.dev", "*.new",
+      "localhost", "127.0.0.1", "::1"
+    ],
     "deniedDomains": []
   },
   "filesystem": {
@@ -14,19 +20,17 @@
       "~/.config/gh/hosts.yml",
       "~/.gitconfig",
       ".env",
-      "${AGENT_DIR}/extensions/sandbox",
-      "${AGENT_DIR}/extensions/guard.ts"
+      "~/.pi/auth.json",
+      "~/.pi/models.json"
     ],
-    "allowWrite": [".", "${AGENT_DIR}"],
+    "allowWrite": ["."],
     "denyWrite": [
       ".env",
       ".env.*",
       "*.pem",
       "*.key",
       "id_rsa",
-      "id_ed25519",
-      "${AGENT_DIR}/extensions/sandbox",
-      "${AGENT_DIR}/extensions/guard.ts"
+      "id_ed25519"
     ]
   }
 }
