@@ -42,12 +42,18 @@ Plan:
 - Agent creates a plan without making changes
 
 ### Execution Mode
-- Full tool access restored
+- The tool set that was active **before** entering plan mode is restored
+  verbatim (we capture it on entry, restore it on exit). So if you had a
+  custom set enabled, plan mode no longer silently flattens it back to a
+  hard-coded list.
 - Agent executes steps in order
 - `[DONE:n]` markers track completion
 - Widget shows progress
 
 ### Command Allowlist
+
+Precedence: a destructive match **always wins** over a safe match. Anything
+that isn't matched by `SAFE_PATTERNS` is rejected by default.
 
 Safe commands (allowed):
 - File inspection: `cat`, `head`, `tail`, `less`, `more`
@@ -56,6 +62,7 @@ Safe commands (allowed):
 - Git read: `git status`, `git log`, `git diff`, `git branch`
 - Package info: `npm list`, `npm outdated`, `yarn info`
 - System info: `uname`, `whoami`, `date`, `uptime`
+- Stdout-only downloads: `wget -O -`
 
 Blocked commands:
 - File modification: `rm`, `mv`, `cp`, `mkdir`, `touch`
@@ -63,3 +70,7 @@ Blocked commands:
 - Package install: `npm install`, `yarn add`, `pip install`
 - System: `sudo`, `kill`, `reboot`
 - Editors: `vim`, `nano`, `code`
+- Downloads that write to disk: `curl -o`, `curl -O`, `curl --output`,
+  `wget -O <file>`, `wget --output-document=<file>`
+- `awk` is intentionally not allowlisted because its program body can shell
+  out and redirect to disk.

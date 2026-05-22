@@ -19,7 +19,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-// Dracula color constants for use by other extensions
+// Dracula color constants (single source of truth — hex).
 export const DRACULA = {
 	purple: "#BD93F9",
 	pink: "#FF79C6",
@@ -34,25 +34,69 @@ export const DRACULA = {
 	selection: "#44475A",
 } as const;
 
-// ANSI truecolor helpers
-export const C = {
-	purple: "\x1b[38;2;189;147;249m",
-	pink: "\x1b[38;2;255;121;198m",
-	cyan: "\x1b[38;2;139;233;253m",
-	green: "\x1b[38;2;80;250;123m",
-	yellow: "\x1b[38;2;241;250;140m",
-	orange: "\x1b[38;2;255;184;108m",
-	red: "\x1b[38;2;255;85;85m",
-	fg: "\x1b[38;2;248;248;242m",
-	dim: "\x1b[38;2;98;114;164m",
-	reset: "\x1b[0m",
-} as const;
+type DraculaKey = keyof typeof DRACULA;
 
-export default function (pi: ExtensionAPI) {
+function hexToRgb(hex: string): readonly [number, number, number] {
+	const h = hex.startsWith("#") ? hex.slice(1) : hex;
+	const r = Number.parseInt(h.slice(0, 2), 16);
+	const g = Number.parseInt(h.slice(2, 4), 16);
+	const b = Number.parseInt(h.slice(4, 6), 16);
+	return [r, g, b];
+}
+
+function ansiFg(hex: string): string {
+	const [r, g, b] = hexToRgb(hex);
+	return `\x1b[38;2;${r};${g};${b}m`;
+}
+
+// ANSI truecolor helpers derived from DRACULA (one source of truth).
+// The explicit Record type widens values to `string`, so a trailing `as const`
+// here would be a no-op — omitted intentionally.
+export const C: Record<DraculaKey, string> & { reset: string } = {
+	purple: ansiFg(DRACULA.purple),
+	pink: ansiFg(DRACULA.pink),
+	cyan: ansiFg(DRACULA.cyan),
+	green: ansiFg(DRACULA.green),
+	yellow: ansiFg(DRACULA.yellow),
+	orange: ansiFg(DRACULA.orange),
+	red: ansiFg(DRACULA.red),
+	bg: ansiFg(DRACULA.bg),
+	fg: ansiFg(DRACULA.fg),
+	dim: ansiFg(DRACULA.dim),
+	selection: ansiFg(DRACULA.selection),
+	reset: "\x1b[0m",
+};
+
+const PALETTE_ENTRIES: ReadonlyArray<readonly [DraculaKey, string, string]> = [
+	["purple", DRACULA.purple, "Keywords, accent"],
+	["pink", DRACULA.pink, "Strings"],
+	["cyan", DRACULA.cyan, "Functions, links"],
+	["green", DRACULA.green, "Success"],
+	["yellow", DRACULA.yellow, "Warnings"],
+	["orange", DRACULA.orange, "Variables"],
+	["red", DRACULA.red, "Errors"],
+	["dim", DRACULA.dim, "Comment / muted"],
+];
+
+function formatInfo(): string {
+	const rows = PALETTE_ENTRIES.map(
+		([key, hex, label]) => `  ${C[key]}${key.padEnd(7)} ${hex}${C.reset} - ${label}`,
+	).join("\n");
+	return `Dracula Theme\n\nPalette:\n${rows}\n\nLocation: ~/.pi/agent/themes/dracula.json`;
+}
+
+function formatColors(): string {
+	return PALETTE_ENTRIES.map(([key, , label]) => `${C[key]}████${C.reset} ${label} (${key})`).join("\n");
+}
+
+export default function (pi: ExtensionAPI): void {
 	pi.on("session_start", async (_event, ctx) => {
 		// Theme is auto-loaded from ~/.pi/agent/themes/dracula.json
-		// Just show a status indicator
 		ctx.ui.setStatus("dracula", ctx.ui.theme.fg("accent", "🧛 Dracula"));
+
+		// Re-emit on every session_start so late subscribers (other extensions
+		// that load after this one) can still receive the palette.
+		pi.events.emit("dracula:colors", DRACULA);
 	});
 
 	pi.registerCommand("dracula", {
@@ -61,43 +105,19 @@ export default function (pi: ExtensionAPI) {
 			const subcmd = args.trim() || "info";
 
 			switch (subcmd) {
-				case "info":
-					ctx.ui.notify(
-						`Dracula Theme\n\n` +
-						`Palette:\n` +
-						`  ${C.purple}Purple #BD93F9${C.reset} - Keywords, accent\n` +
-						`  ${C.pink}Pink   #FF79C6${C.reset} - Strings\n` +
-						`  ${C.cyan}Cyan   #8BE9FD${C.reset} - Functions, links\n` +
-						`  ${C.green}Green  #50FA7B${C.reset} - Success\n` +
-						`  ${C.yellow}Yellow #F1FA8C${C.reset} - Warnings\n` +
-						`  ${C.orange}Orange #FFB86C${C.reset} - Variables\n` +
-						`  ${C.red}Red    #FF5555${C.reset} - Errors\n` +
-						`\nLocation: ~/.pi/agent/themes/dracula.json`,
-						"info"
-					);
+				case "info": {
+					ctx.ui.notify(formatInfo(), "info");
 					break;
-
+				}
 				case "colors":
-					// Show color swatches
-					const swatches = [
-						`${C.purple}████${C.reset} Purple`,
-						`${C.pink}████${C.reset} Pink`,
-						`${C.cyan}████${C.reset} Cyan`,
-						`${C.green}████${C.reset} Green`,
-						`${C.yellow}████${C.reset} Yellow`,
-						`${C.orange}████${C.reset} Orange`,
-						`${C.red}████${C.reset} Red`,
-						`${C.dim}████${C.reset} Comment`,
-					];
-					ctx.ui.notify(swatches.join("\n"), "info");
+				case "palette": {
+					ctx.ui.notify(formatColors(), "info");
 					break;
-
-				default:
-					ctx.ui.notify("Usage: /dracula [info|colors]", "error");
+				}
+				default: {
+					ctx.ui.notify("Usage: /dracula [info|colors|palette]", "error");
+				}
 			}
 		},
 	});
-
-	// Export colors for other extensions via events
-	pi.events.emit("dracula:colors", DRACULA);
 }

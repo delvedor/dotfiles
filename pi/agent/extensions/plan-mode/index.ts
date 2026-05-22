@@ -10,27 +10,64 @@
  * - Extracts numbered plan steps from "Plan:" sections
  * - [DONE:n] markers to complete steps during execution
  * - Progress tracking widget during execution
+ *
+ * Restore semantics:
+ *   When entering plan mode the *current* active tool list is captured.
+ *   When leaving plan mode it is restored verbatim — so we honour whatever
+ *   the user/session had enabled, instead of forcing a hard-coded set.
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, TextContent } from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+	CustomEntry,
+	ExtensionAPI,
+	ExtensionContext,
+	SessionEntry,
+} from "@earendil-works/pi-coding-agent";
+import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 import { Key } from "@earendil-works/pi-tui";
 import { extractTodoItems, isSafeCommand, markCompletedSteps, type TodoItem } from "./utils.js";
 
-// Tools
+// Tools available while plan mode is active.
 const PLAN_MODE_TOOLS = ["read", "bash", "grep", "find", "ls", "questionnaire"];
-const NORMAL_MODE_TOOLS = ["read", "bash", "edit", "write"];
+const STORAGE_KEY = "plan-mode";
 
-// Type guard for assistant messages
+interface PlanModePersistedState {
+	enabled: boolean;
+	todos?: TodoItem[];
+	executing?: boolean;
+	/** Tools that were active when plan mode was entered, restored on exit. */
+	savedTools?: string[];
+}
+
+// === Type guards ===
+
 function isAssistantMessage(m: AgentMessage): m is AssistantMessage {
 	return m.role === "assistant" && Array.isArray(m.content);
+}
+
+function isTextContent(block: { type: string }): block is TextContent {
+	return block.type === "text";
+}
+
+function isCustomEntryOfType(customType: string) {
+	return (entry: SessionEntry): entry is CustomEntry => entry.type === "custom" && entry.customType === customType;
+}
+
+const isPlanModeStateEntry = isCustomEntryOfType(STORAGE_KEY);
+const isPlanModeExecuteEntry = isCustomEntryOfType("plan-mode-execute");
+
+function isPersistedState(value: unknown): value is PlanModePersistedState {
+	if (typeof value !== "object" || value === null) return false;
+	const v = value as Record<string, unknown>;
+	return typeof v.enabled === "boolean";
 }
 
 // Extract text content from an assistant message
 function getTextContent(message: AssistantMessage): string {
 	return message.content
-		.filter((block): block is TextContent => block.type === "text")
+		.filter(isTextContent)
 		.map((block) => block.text)
 		.join("\n");
 }
@@ -39,12 +76,23 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 	let planModeEnabled = false;
 	let executionMode = false;
 	let todoItems: TodoItem[] = [];
+	let savedTools: string[] = [];
 
 	pi.registerFlag("plan", {
 		description: "Start in plan mode (read-only exploration)",
 		type: "boolean",
 		default: false,
 	});
+
+	function persistState(): void {
+		const state: PlanModePersistedState = {
+			enabled: planModeEnabled,
+			todos: todoItems,
+			executing: executionMode,
+			savedTools,
+		};
+		pi.appendEntry(STORAGE_KEY, state);
+	}
 
 	function updateStatus(ctx: ExtensionContext): void {
 		// Footer status
@@ -62,7 +110,8 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 			const lines = todoItems.map((item) => {
 				if (item.completed) {
 					return (
-						ctx.ui.theme.fg("success", "☑ ") + ctx.ui.theme.fg("muted", ctx.ui.theme.strikethrough(item.text))
+						ctx.ui.theme.fg("success", "☑ ") +
+						ctx.ui.theme.fg("muted", ctx.ui.theme.strikethrough(item.text))
 					);
 				}
 				return `${ctx.ui.theme.fg("muted", "☐ ")}${item.text}`;
@@ -73,27 +122,49 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 		}
 	}
 
-	function togglePlanMode(ctx: ExtensionContext): void {
-		planModeEnabled = !planModeEnabled;
-		executionMode = false;
-		todoItems = [];
-
-		if (planModeEnabled) {
-			pi.setActiveTools(PLAN_MODE_TOOLS);
-			ctx.ui.notify(`Plan mode enabled. Tools: ${PLAN_MODE_TOOLS.join(", ")}`);
-		} else {
-			pi.setActiveTools(NORMAL_MODE_TOOLS);
-			ctx.ui.notify("Plan mode disabled. Full access restored.");
-		}
-		updateStatus(ctx);
+	/**
+	 * Re-activate the user's pre-plan-mode tool set. Falls back to "all known
+	 * tools" if we never captured a baseline (e.g. first run with no entry).
+	 */
+	function restoreSavedTools(): void {
+		const restore = savedTools.length > 0 ? savedTools : pi.getAllTools().map((t) => t.name);
+		pi.setActiveTools(restore);
 	}
 
-	function persistState(): void {
-		pi.appendEntry("plan-mode", {
-			enabled: planModeEnabled,
-			todos: todoItems,
-			executing: executionMode,
-		});
+	function enterPlanMode(ctx: ExtensionContext): void {
+		// Only capture the baseline if we aren't already in plan mode. A defensive
+		// double-call (shortcut spam, etc.) would otherwise clobber savedTools with
+		// PLAN_MODE_TOOLS and silently break the restore-on-exit contract.
+		if (!planModeEnabled) {
+			savedTools = pi.getActiveTools();
+		}
+		planModeEnabled = true;
+		executionMode = false;
+		todoItems = [];
+		pi.setActiveTools(PLAN_MODE_TOOLS);
+		ctx.ui.notify(`Plan mode enabled. Tools: ${PLAN_MODE_TOOLS.join(", ")}`);
+		updateStatus(ctx);
+		persistState();
+	}
+
+	function leavePlanMode(ctx: ExtensionContext, reason: "manual" | "execute"): void {
+		planModeEnabled = false;
+		if (reason === "manual") {
+			executionMode = false;
+			todoItems = [];
+		}
+		restoreSavedTools();
+		ctx.ui.notify("Plan mode disabled. Default tools restored.");
+		updateStatus(ctx);
+		persistState();
+	}
+
+	function togglePlanMode(ctx: ExtensionContext): void {
+		if (planModeEnabled) {
+			leavePlanMode(ctx, "manual");
+		} else {
+			enterPlanMode(ctx);
+		}
 	}
 
 	pi.registerCommand("plan", {
@@ -108,7 +179,9 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 				ctx.ui.notify("No todos. Create a plan first with /plan", "info");
 				return;
 			}
-			const list = todoItems.map((item, i) => `${i + 1}. ${item.completed ? "✓" : "○"} ${item.text}`).join("\n");
+			const list = todoItems
+				.map((item, i) => `${i + 1}. ${item.completed ? "✓" : "○"} ${item.text}`)
+				.join("\n");
 			ctx.ui.notify(`Plan Progress:\n${list}`, "info");
 		},
 	});
@@ -120,9 +193,10 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 
 	// Block destructive bash commands in plan mode
 	pi.on("tool_call", async (event) => {
-		if (!planModeEnabled || event.toolName !== "bash") return;
+		if (!planModeEnabled) return;
+		if (!isToolCallEventType("bash", event)) return;
 
-		const command = event.input.command as string;
+		const command = event.input.command;
 		if (!isSafeCommand(command)) {
 			return {
 				block: true,
@@ -204,7 +278,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
 		}
 	});
 
-	// Track progress after each turn
+	// Track progress after each turn (markCompletedSteps mutates `todoItems` in place).
 	pi.on("turn_end", async (event, ctx) => {
 		if (!executionMode || todoItems.length === 0) return;
 		if (!isAssistantMessage(event.message)) return;
@@ -228,9 +302,9 @@ After completing a step, include a [DONE:n] tag in your response.`,
 				);
 				executionMode = false;
 				todoItems = [];
-				pi.setActiveTools(NORMAL_MODE_TOOLS);
+				restoreSavedTools();
 				updateStatus(ctx);
-				persistState(); // Save cleared state so resume doesn't restore old execution mode
+				persistState();
 			}
 			return;
 		}
@@ -238,7 +312,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
 		if (!planModeEnabled || !ctx.hasUI) return;
 
 		// Extract todos from last assistant message
-		const lastAssistant = [...event.messages].reverse().find(isAssistantMessage);
+		const lastAssistant = event.messages.findLast(isAssistantMessage);
 		if (lastAssistant) {
 			const extracted = extractTodoItems(getTextContent(lastAssistant));
 			if (extracted.length > 0) {
@@ -268,7 +342,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
 		if (choice?.startsWith("Execute")) {
 			planModeEnabled = false;
 			executionMode = todoItems.length > 0;
-			pi.setActiveTools(NORMAL_MODE_TOOLS);
+			restoreSavedTools();
 			updateStatus(ctx);
 
 			const execMessage =
@@ -279,6 +353,7 @@ After completing a step, include a [DONE:n] tag in your response.`,
 				{ customType: "plan-mode-execute", content: execMessage, display: true },
 				{ triggerTurn: true },
 			);
+			persistState();
 		} else if (choice === "Refine the plan") {
 			const refinement = await ctx.ui.editor("Refine the plan:", "");
 			if (refinement?.trim()) {
@@ -289,50 +364,57 @@ After completing a step, include a [DONE:n] tag in your response.`,
 
 	// Restore state on session start/resume
 	pi.on("session_start", async (_event, ctx) => {
-		if (pi.getFlag("plan") === true) {
-			planModeEnabled = true;
-		}
-
 		const entries = ctx.sessionManager.getEntries();
 
-		// Restore persisted state
-		const planModeEntry = entries
-			.filter((e: { type: string; customType?: string }) => e.type === "custom" && e.customType === "plan-mode")
-			.pop() as { data?: { enabled: boolean; todos?: TodoItem[]; executing?: boolean } } | undefined;
-
-		if (planModeEntry?.data) {
-			planModeEnabled = planModeEntry.data.enabled ?? planModeEnabled;
-			todoItems = planModeEntry.data.todos ?? todoItems;
-			executionMode = planModeEntry.data.executing ?? executionMode;
+		// Restore persisted state first (last write wins).
+		const planModeEntry = entries.filter(isPlanModeStateEntry).pop();
+		if (planModeEntry && isPersistedState(planModeEntry.data)) {
+			const data = planModeEntry.data;
+			planModeEnabled = data.enabled;
+			todoItems = data.todos ?? todoItems;
+			executionMode = data.executing ?? executionMode;
+			savedTools = data.savedTools ?? savedTools;
 		}
 
-		// On resume: re-scan messages to rebuild completion state
-		// Only scan messages AFTER the last "plan-mode-execute" to avoid picking up [DONE:n] from previous plans
+		// `--plan` is an explicit user signal at startup — it must win over
+		// whatever the prior session persisted. Also reset todos and savedTools
+		// so the new run starts from a clean baseline and captures the *current*
+		// tool set, not whatever was active last time. Persist immediately so a
+		// crash before any toggle/turn doesn't leave stale on-disk state.
+		if (pi.getFlag("plan") === true) {
+			planModeEnabled = true;
+			executionMode = false;
+			todoItems = [];
+			savedTools = [];
+			persistState();
+		}
+
+		// On resume: re-scan messages to rebuild completion state.
+		// Only scan messages AFTER the last "plan-mode-execute" entry — avoids picking
+		// up [DONE:n] from previous plan runs. If no execute marker is found, skip the
+		// scan entirely (we have no safe anchor and would otherwise mis-mark steps).
 		const isResume = planModeEntry !== undefined;
 		if (isResume && executionMode && todoItems.length > 0) {
-			// Find the index of the last plan-mode-execute entry (marks when current execution started)
-			let executeIndex = -1;
-			for (let i = entries.length - 1; i >= 0; i--) {
-				const entry = entries[i] as { type: string; customType?: string };
-				if (entry.customType === "plan-mode-execute") {
-					executeIndex = i;
-					break;
+			const executeIndex = entries.findLastIndex(isPlanModeExecuteEntry);
+			if (executeIndex >= 0) {
+				const messages: AssistantMessage[] = [];
+				for (let i = executeIndex + 1; i < entries.length; i++) {
+					const entry = entries[i];
+					if (entry.type === "message" && isAssistantMessage(entry.message)) {
+						messages.push(entry.message);
+					}
 				}
+				const allText = messages.map(getTextContent).join("\n");
+				markCompletedSteps(allText, todoItems);
 			}
-
-			// Only scan messages after the execute marker
-			const messages: AssistantMessage[] = [];
-			for (let i = executeIndex + 1; i < entries.length; i++) {
-				const entry = entries[i];
-				if (entry.type === "message" && "message" in entry && isAssistantMessage(entry.message as AgentMessage)) {
-					messages.push(entry.message as AssistantMessage);
-				}
-			}
-			const allText = messages.map(getTextContent).join("\n");
-			markCompletedSteps(allText, todoItems);
 		}
 
 		if (planModeEnabled) {
+			// On a fresh session_start (not from a manual toggle) we may not have a
+			// saved baseline yet — capture the current tool list before clamping.
+			if (savedTools.length === 0) {
+				savedTools = pi.getActiveTools();
+			}
 			pi.setActiveTools(PLAN_MODE_TOOLS);
 		}
 		updateStatus(ctx);

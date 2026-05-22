@@ -13,7 +13,7 @@
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import { complete, type Message } from "@earendil-works/pi-ai";
+import { complete, type Message, type TextContent } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, SessionEntry } from "@earendil-works/pi-coding-agent";
 import { BorderedLoader, convertToLlm, serializeConversation } from "@earendil-works/pi-coding-agent";
 
@@ -39,6 +39,10 @@ Files involved:
 ## Task
 [Clear description of what to do next based on user's goal]`;
 
+function isTextContent(value: { type: string }): value is TextContent {
+	return value.type === "text";
+}
+
 function entryToMessage(entry: SessionEntry): AgentMessage | undefined {
 	if (entry.type === "message") {
 		return entry.message;
@@ -54,21 +58,18 @@ function entryToMessage(entry: SessionEntry): AgentMessage | undefined {
 	return undefined;
 }
 
+type CompactionSessionEntry = Extract<SessionEntry, { type: "compaction" }>;
+
 function getHandoffMessages(branch: SessionEntry[]): AgentMessage[] {
-	let compactionIndex = -1;
-	for (let i = branch.length - 1; i >= 0; i--) {
-		if (branch[i].type === "compaction") {
-			compactionIndex = i;
-			break;
-		}
-	}
+	const compactionIndex = branch.findLastIndex((entry) => entry.type === "compaction");
 	if (compactionIndex < 0) {
 		return branch.map(entryToMessage).filter((message) => message !== undefined);
 	}
 
-	const compaction = branch[compactionIndex];
-	const firstKeptIndex =
-		compaction.type === "compaction" ? branch.findIndex((entry) => entry.id === compaction.firstKeptEntryId) : -1;
+	// findLastIndex's predicate already guaranteed the discriminant.
+	const compaction = branch[compactionIndex] as CompactionSessionEntry;
+
+	const firstKeptIndex = branch.findIndex((entry) => entry.id === compaction.firstKeptEntryId);
 	const compactedBranch = [
 		compaction,
 		...(firstKeptIndex >= 0 ? branch.slice(firstKeptIndex, compactionIndex) : []),
@@ -77,7 +78,7 @@ function getHandoffMessages(branch: SessionEntry[]): AgentMessage[] {
 	return compactedBranch.map(entryToMessage).filter((message) => message !== undefined);
 }
 
-export default function (pi: ExtensionAPI) {
+export default function (pi: ExtensionAPI): void {
 	pi.registerCommand("handoff", {
 		description: "Transfer context to a new focused session",
 		handler: async (args, ctx) => {
@@ -86,7 +87,8 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 
-			if (!ctx.model) {
+			const model = ctx.model;
+			if (!model) {
 				ctx.ui.notify("No model selected", "error");
 				return;
 			}
@@ -114,12 +116,20 @@ export default function (pi: ExtensionAPI) {
 			// Generate the handoff prompt with loader UI
 			const result = await ctx.ui.custom<string | null>((tui, theme, _kb, done) => {
 				const loader = new BorderedLoader(tui, theme, `Generating handoff prompt...`);
-				loader.onAbort = () => done(null);
+				// `done` must only be called once. Abort + late-arriving completion or
+				// rejection can otherwise both fire it.
+				let settled = false;
+				const finish = (value: string | null): void => {
+					if (settled) return;
+					settled = true;
+					done(value);
+				};
+				loader.onAbort = () => finish(null);
 
-				const doGenerate = async () => {
-					const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model!);
+				const doGenerate = async (): Promise<string | null> => {
+					const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
 					if (!auth.ok || !auth.apiKey) {
-						throw new Error(auth.ok ? `No API key for ${ctx.model!.provider}` : auth.error);
+						throw new Error(auth.ok ? `No API key for ${model.provider}` : auth.error);
 					}
 
 					const userMessage: Message = {
@@ -134,7 +144,7 @@ export default function (pi: ExtensionAPI) {
 					};
 
 					const response = await complete(
-						ctx.model!,
+						model,
 						{ systemPrompt: SYSTEM_PROMPT, messages: [userMessage] },
 						{ apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal },
 					);
@@ -144,16 +154,18 @@ export default function (pi: ExtensionAPI) {
 					}
 
 					return response.content
-						.filter((c): c is { type: "text"; text: string } => c.type === "text")
+						.filter(isTextContent)
 						.map((c) => c.text)
 						.join("\n");
 				};
 
 				doGenerate()
-					.then(done)
-					.catch((err) => {
+					.then(finish)
+					.catch((err: unknown) => {
+						const message = err instanceof Error ? err.message : String(err);
 						console.error("Handoff generation failed:", err);
-						done(null);
+						ctx.ui.notify(`Handoff generation failed: ${message}`, "error");
+						finish(null);
 					});
 
 				return loader;

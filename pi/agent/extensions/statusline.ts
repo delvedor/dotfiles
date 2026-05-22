@@ -6,12 +6,24 @@
  * - Tide-style abbreviated paths
  * - Nerd Font icons
  * - Model, context %, cost, path, git branch
+ *
+ * Implementation notes:
+ *   - Token/cost totals are cached and only recomputed on turn_end / model_select /
+ *     session_start, instead of sweeping the entire branch on every footer render.
+ *   - Git branch is resolved with a single combined invocation
+ *     (symbolic-ref → fallback to short SHA) rather than two separate execSync calls.
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
-import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import type {
+	CustomEntry,
+	ExtensionAPI,
+	ExtensionContext,
+	SessionEntry,
+} from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import { execSync } from "node:child_process";
+import { homedir } from "node:os";
 
 // === Dracula Theme Colors ===
 const C = {
@@ -24,30 +36,49 @@ const C = {
 	fg: "\x1b[38;2;248;248;242m",
 	dim: "\x1b[38;2;98;114;164m",
 	reset: "\x1b[0m",
-};
+} as const;
 
 // Nerd Font glyphs (MesloLGS Nerd Font Mono)
 const ICONS = {
-	cpu: "\u{F4BC}",       // nf-mdi-cpu
-	database: "\u{F1C0}",  // nf-mdi-database 
-	folder: "\u{F07B}",    // nf-fa-folder_open
-	dollar: "\u{F155}",    // nf-fa-dollar
-	branch: "\u{E0A0}",    // nf-pl-branch
-	session: "\u{F086}",   // nf-fa-comments (session/chat icon)
-};
+	cpu: "\u{F4BC}", // nf-mdi-cpu
+	database: "\u{F1C0}", // nf-mdi-database
+	folder: "\u{F07B}", // nf-fa-folder_open
+	// Group icon for the tokens+cost field. NOT a dollar sign — the cost itself
+	// is rendered as `$<n.nnnn>` later in the same segment, so a `$` glyph here
+	// would double up. A neutral usage/stats glyph fits both halves.
+	usage: "\u{F080}", // nf-fa-bar_chart
+	branch: "\u{E0A0}", // nf-pl-branch
+	session: "\u{F086}", // nf-fa-comments (session/chat icon)
+} as const;
 
-// Config
 interface Config {
 	enabled: boolean;
 }
 
+interface UsageTotals {
+	input: number;
+	output: number;
+	cacheRead: number;
+	cacheWrite: number;
+	cost: number;
+}
+
 const DEFAULT: Config = { enabled: true };
 const STORAGE_KEY = "dracula-statusline-v1";
+const EMPTY_TOTALS: UsageTotals = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0 };
 
 // === Utils ===
 
+function isConfig(value: unknown): value is Partial<Config> {
+	return typeof value === "object" && value !== null && (!("enabled" in value) || typeof value.enabled === "boolean");
+}
+
+function isStatuslineEntry(entry: SessionEntry): entry is CustomEntry {
+	return entry.type === "custom" && entry.customType === STORAGE_KEY;
+}
+
 function tidePath(cwd: string, home: string): { parent: string; current: string } {
-	const dp = cwd.startsWith(home) ? cwd.replace(home, "~") : cwd;
+	const dp = home && cwd.startsWith(home) ? cwd.replace(home, "~") : cwd;
 	if (dp === "~" || dp === "/") return { parent: "", current: dp };
 	const parts = dp.split("/").filter(Boolean);
 	if (parts.length === 0) return { parent: "", current: "/" };
@@ -59,48 +90,75 @@ function tidePath(cwd: string, home: string): { parent: string; current: string 
 }
 
 function fmtCtx(n: number): string {
-	if (n >= 1000000) return `${(n / 1000000).toFixed(0)}M`;
-	if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
+	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(0)}M`;
+	if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
 	return `${n}`;
 }
 
 function getGitBranch(cwd: string): string | null {
 	try {
-		execSync("git rev-parse --git-dir", { cwd, stdio: "pipe" });
-		const branch = execSync(
-			"git -c core.useBuiltinFSMonitor=false symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD",
-			{ cwd, encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] }
+		// One combined call: prefer the symbolic ref; if HEAD is detached or this
+		// isn't a git repo at all, fall back to the short SHA (or fail silently).
+		const out = execSync(
+			"git -c core.useBuiltinFSMonitor=false symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null",
+			{ cwd, encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] },
 		).trim();
-		return branch || null;
+		return out || null;
 	} catch {
 		return null;
 	}
 }
 
+function accumulate(branch: readonly SessionEntry[]): UsageTotals {
+	const totals: UsageTotals = { ...EMPTY_TOTALS };
+	for (const e of branch) {
+		if (e.type !== "message" || e.message.role !== "assistant") continue;
+		const usage = (e.message as AssistantMessage).usage;
+		// Defensive defaults — some providers/models omit `cost` (or individual
+		// counters) on assistant messages. Without these, the footer would render
+		// `$NaN` or crash on `cost.total` access.
+		totals.input += usage.input ?? 0;
+		totals.output += usage.output ?? 0;
+		totals.cacheRead += usage.cacheRead ?? 0;
+		totals.cacheWrite += usage.cacheWrite ?? 0;
+		totals.cost += usage.cost?.total ?? 0;
+	}
+	return totals;
+}
+
 // === Main ===
 
-export default function (pi: ExtensionAPI) {
+export default function (pi: ExtensionAPI): void {
 	let config: Config = { ...DEFAULT };
 	let branchCache = "";
 	let lastCwd = "";
-	
-	function loadConfig(ctx: ExtensionContext) {
-		for (const entry of ctx.sessionManager.getEntries()) {
-			if (entry.type === "custom" && entry.customType === STORAGE_KEY) {
+	let totals: UsageTotals = { ...EMPTY_TOTALS };
+
+	function loadConfig(ctx: ExtensionContext): void {
+		// Scan in reverse so the *most recent* persisted toggle wins.
+		const entries = ctx.sessionManager.getEntries();
+		for (let i = entries.length - 1; i >= 0; i--) {
+			const entry = entries[i];
+			if (!isStatuslineEntry(entry)) continue;
+			if (isConfig(entry.data)) {
 				config = { ...DEFAULT, ...entry.data };
 				return;
 			}
 		}
 	}
 
-	function saveConfig() {
+	function saveConfig(): void {
 		pi.appendEntry(STORAGE_KEY, { ...config });
 	}
 
-	function updateBranch(cwd: string) {
+	function refreshTotals(ctx: ExtensionContext): void {
+		totals = accumulate(ctx.sessionManager.getBranch());
+	}
+
+	function updateBranch(cwd: string): void {
 		if (cwd !== lastCwd) {
 			lastCwd = cwd;
-			branchCache = getGitBranch(cwd) || "";
+			branchCache = getGitBranch(cwd) ?? "";
 		}
 	}
 
@@ -124,24 +182,18 @@ export default function (pi: ExtensionAPI) {
 			parts.push(`${C.dim}${ICONS.database} ${C.yellow}ctx:${C.fg}${pct}%${C.dim}(${ctxSize})${C.reset}`);
 		}
 
-		// Cost
-		let cost = 0;
-		let input = 0, output = 0;
-		for (const e of ctx.sessionManager.getBranch()) {
-			if (e.type === "message" && e.message.role === "assistant") {
-				const m = e.message as AssistantMessage;
-				input += m.usage.input;
-				output += m.usage.output;
-				cost += m.usage.cost.total;
-			}
+		// Cost / tokens (from cached totals)
+		if (totals.input > 0 || totals.output > 0) {
+			let tokenStr = `${C.dim}${ICONS.usage} ${C.orange}${fmtCtx(totals.input)}${C.dim}in ${C.orange}${fmtCtx(totals.output)}${C.dim}out`;
+			if (totals.cacheRead > 0) tokenStr += ` ${C.yellow}${fmtCtx(totals.cacheRead)}${C.dim}cr`;
+			if (totals.cacheWrite > 0) tokenStr += ` ${C.yellow}${fmtCtx(totals.cacheWrite)}${C.dim}cw`;
+			if (totals.cost > 0) tokenStr += ` ${C.green}$${totals.cost.toFixed(4)}`;
+			parts.push(tokenStr + C.reset);
 		}
-		parts.push(`${C.dim}${ICONS.dollar} ${C.orange}$${cost.toFixed(4)}${C.reset}`);
 
 		// Path
-		const { parent, current } = tidePath(ctx.cwd, process.env.HOME || "");
-		const pathStr = parent
-			? `${C.dim}${parent}${C.cyan}${current}${C.reset}`
-			: `${C.cyan}${current}${C.reset}`;
+		const { parent, current } = tidePath(ctx.cwd, homedir());
+		const pathStr = parent ? `${C.dim}${parent}${C.cyan}${current}${C.reset}` : `${C.cyan}${current}${C.reset}`;
 		parts.push(`${C.dim}${ICONS.folder} ${pathStr}`);
 
 		// Git branch
@@ -152,7 +204,7 @@ export default function (pi: ExtensionAPI) {
 		return parts.join("  ");
 	}
 
-	function apply(ctx: ExtensionContext) {
+	function apply(ctx: ExtensionContext): void {
 		if (!config.enabled) {
 			ctx.ui.setFooter(undefined);
 			return;
@@ -185,14 +237,17 @@ export default function (pi: ExtensionAPI) {
 	// Events
 	pi.on("session_start", (_event, ctx) => {
 		loadConfig(ctx);
+		refreshTotals(ctx);
 		if (config.enabled) apply(ctx);
 	});
 
 	pi.on("model_select", (_event, ctx) => {
+		refreshTotals(ctx);
 		if (config.enabled) apply(ctx);
 	});
 
 	pi.on("turn_end", (_event, ctx) => {
+		refreshTotals(ctx);
 		if (config.enabled) apply(ctx);
 	});
 
@@ -201,7 +256,7 @@ export default function (pi: ExtensionAPI) {
 		description: "/statusline [toggle|enable|disable]",
 		handler: async (args, ctx) => {
 			const cmd = args.trim() || "toggle";
-			
+
 			switch (cmd) {
 				case "toggle":
 					config.enabled = !config.enabled;

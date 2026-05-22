@@ -14,6 +14,10 @@
 		]
 	},
 	"dependencies": {
-		"@anthropic-ai/sandbox-runtime": "^0.0.26"
+		"@anthropic-ai/sandbox-runtime": "^0.0.26",
+		"picomatch": "^4.0.4"
+	},
+	"devDependencies": {
+		"@types/picomatch": "^4.0.3"
 	}
 }

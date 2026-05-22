@@ -1,13 +1,37 @@
 /**
  * Confirm Destructive Actions Extension
  *
- * Prompts for confirmation before destructive session actions (clear, switch, branch).
+ * Prompts for confirmation before destructive session actions (clear, switch, fork).
  * Demonstrates how to cancel session events using the before_* events.
  */
 
-import type { ExtensionAPI, SessionBeforeSwitchEvent, SessionMessageEntry } from "@earendil-works/pi-coding-agent";
+import type {
+	ExtensionAPI,
+	SessionBeforeForkEvent,
+	SessionBeforeSwitchEvent,
+	SessionEntry,
+	SessionMessageEntry,
+} from "@earendil-works/pi-coding-agent";
 
-export default function (pi: ExtensionAPI) {
+function isMessageEntry(entry: SessionEntry): entry is SessionMessageEntry {
+	return entry.type === "message";
+}
+
+/**
+ * True when the most recent message in the branch is a user message,
+ * i.e. there is at least one user message that has not yet received an
+ * assistant response. Pure tail-scan — O(n) worst case, O(1) typical.
+ */
+function hasUnansweredUserMessage(entries: readonly SessionEntry[]): boolean {
+	for (let i = entries.length - 1; i >= 0; i--) {
+		const entry = entries[i];
+		if (!isMessageEntry(entry)) continue;
+		return entry.message.role === "user";
+	}
+	return false;
+}
+
+export default function (pi: ExtensionAPI): void {
 	pi.on("session_before_switch", async (event: SessionBeforeSwitchEvent, ctx) => {
 		if (!ctx.hasUI) return;
 
@@ -24,34 +48,30 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
-		// reason === "resume" - check if there are unsaved changes (messages since last assistant response)
-		const entries = ctx.sessionManager.getEntries();
-		const hasUnsavedWork = entries.some(
-			(e): e is SessionMessageEntry => e.type === "message" && e.message.role === "user",
+		// reason === "resume" — only warn when there's a user message that
+		// hasn't been answered yet (work in flight).
+		if (!hasUnansweredUserMessage(ctx.sessionManager.getEntries())) return;
+
+		const confirmed = await ctx.ui.confirm(
+			"Switch session?",
+			"You have an unanswered message in the current session. Switch anyway?",
 		);
 
-		if (hasUnsavedWork) {
-			const confirmed = await ctx.ui.confirm(
-				"Switch session?",
-				"You have messages in the current session. Switch anyway?",
-			);
-
-			if (!confirmed) {
-				ctx.ui.notify("Switch cancelled", "info");
-				return { cancel: true };
-			}
+		if (!confirmed) {
+			ctx.ui.notify("Switch cancelled", "info");
+			return { cancel: true };
 		}
 	});
 
-	pi.on("session_before_fork", async (event, ctx) => {
+	pi.on("session_before_fork", async (event: SessionBeforeForkEvent, ctx) => {
 		if (!ctx.hasUI) return;
 
-		const choice = await ctx.ui.select(`Fork from entry ${event.entryId.slice(0, 8)}?`, [
-			"Yes, create fork",
-			"No, stay in current session",
-		]);
+		const confirmed = await ctx.ui.confirm(
+			"Fork session?",
+			`Create a new branch from entry ${event.entryId.slice(0, 8)}?`,
+		);
 
-		if (choice !== "Yes, create fork") {
+		if (!confirmed) {
 			ctx.ui.notify("Fork cancelled", "info");
 			return { cancel: true };
 		}

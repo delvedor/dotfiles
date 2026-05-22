@@ -1,6 +1,19 @@
 /**
  * Pure utility functions for plan mode.
  * Extracted for testability.
+ *
+ * Allowlist precedence:
+ *   1. DESTRUCTIVE_PATTERNS always wins. If any destructive pattern matches the
+ *      command (anywhere — to catch chained / substituted shell forms), the
+ *      command is rejected even if a safe pattern also matches.
+ *   2. SAFE_PATTERNS must then match (as a prefix anchor). Anything else is
+ *      rejected by default.
+ *
+ * Notes on tightening:
+ *   - curl/wget downloads to a file (`-o`, `-O`, `--output`) are treated as
+ *     destructive — only stdout-streaming forms (`wget -O -`) remain safe.
+ *   - awk is intentionally NOT in the safe list because it can write to files
+ *     via shell-style redirection inside its program body.
  */
 
 // Destructive commands blocked in plan mode
@@ -38,6 +51,31 @@ const DESTRUCTIVE_PATTERNS = [
 	/\bsystemctl\s+(start|stop|restart|enable|disable)/i,
 	/\bservice\s+\S+\s+(start|stop|restart)/i,
 	/\b(vim?|nano|emacs|code|subl)\b/i,
+	// Network downloads that write to disk.
+	/\bcurl\b[^|;&]*\s(-o|-O|--output)(\s|=)/i,
+	/\bwget\b[^|;&]*\s-O\s+(?!-(\s|$))\S/i,
+	/\bwget\b[^|;&]*\s--output-document(\s|=)(?!-(\s|$))/i,
+	// curl POST / form / upload (exfil channels).
+	/\bcurl\b[^|;&]*\s(-d|--data|--data-binary|--data-raw|-F|--form|-T|--upload-file)\b/i,
+	// `find` flags that write/delete (subset of common write-capable flags).
+	/\bfind\b[^|;&]*\s-delete\b/i,
+	/\bfind\b[^|;&]*\s-fprint(f|0)?\b/i,
+	/\bfind\b[^|;&]*\s-fls\b/i,
+	// `find -exec` / `find -execdir` run arbitrary commands.
+	/\bfind\b[^|;&]*\s-exec(dir)?\b/i,
+	// === Code execution gates ===
+	// Piping into a shell or scripting interpreter (the classic `curl … | bash`).
+	/\|\s*(sh|bash|zsh|ksh|dash|ash|fish|csh|tcsh)\b/i,
+	/\|\s*(python|perl|ruby|node|deno|bun|php|lua|osascript|Rscript)\d*\b/i,
+	// Shell built-ins that execute strings. These also cover the piped forms
+	// (`cmd | xargs`, `cmd | eval`) via word boundaries — no separate pipe rule needed.
+	/\beval\b/i,
+	/\bxargs\b/i,
+	// Command substitution: `$(...)` and backticks.
+	/\$\(/, // matches the opening of $( ... )
+	/`/, // backticks (matches any single backtick char in the command)
+	// Network shells / remote command execution.
+	/\b(nc|ncat|netcat|socat|telnet|ssh|scp|sftp|rsync|ftp)\b/i,
 ];
 
 // Safe read-only commands allowed in plan mode
@@ -83,11 +121,16 @@ const SAFE_PATTERNS = [
 	/^\s*yarn\s+(list|info|why|audit)/i,
 	/^\s*node\s+--version/i,
 	/^\s*python\s+--version/i,
+	// `wget -O -` is intentionally NOT listed: the destructive `|\s*(sh|bash|…)`
+	// patterns above already neutralise the `wget -O- … | bash` RCE bridge, and
+	// leaving the explicit SAFE entry just invites a regression if someone
+	// loosens those rules. Use `curl` for read-only HTTP fetches.
 	/^\s*curl\s/i,
-	/^\s*wget\s+-O\s*-/i,
 	/^\s*jq\b/,
-	/^\s*sed\s+-n/i,
-	/^\s*awk\b/,
+	// `sed` deliberately omitted — even `sed -n` can write via the `w` flag in a
+	// script body and `-i` does in-place editing. Use `grep`/`awk` if you need
+	// extraction (well, awk is also out, see below).
+	// `awk` deliberately omitted — its program body can shell out and redirect.
 	/^\s*rg\b/,
 	/^\s*fd\b/,
 	/^\s*bat\b/,

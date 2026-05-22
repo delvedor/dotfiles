@@ -2,8 +2,8 @@
  * Sandbox Extension - Config-driven sandboxing via sandbox.json
  *
  * Config files (project takes precedence over global):
- * - <extension-dir>/config.json (global/default)
  * - <cwd>/.pi/sandbox.json (project-local)
+ * - <extension-dir>/config.json (global/default)
  *
  * Example config.json:
  * ```json
@@ -16,10 +16,24 @@
  *   "filesystem": {
  *     "denyRead": ["~/.ssh", "~/.aws", ".env"],
  *     "allowWrite": ["."],
- *     "denyWrite": [".env", "*.pem"]
+ *     "denyWrite": [".env", "*.pem", "*.key"]
  *   }
  * }
  * ```
+ *
+ * Glob support (filesystem entries):
+ *   - All `denyRead` / `allowWrite` / `denyWrite` entries are picomatch globs.
+ *   - Entries without a `/` are treated as basename patterns (for example,
+ *     `"*.pem"` matches any .pem file at any depth).
+ *   - Entries with a `/` are anchored to the resolved absolute path. The
+ *     matcher also matches anything *inside* that path (descendant semantics),
+ *     so `~/.ssh` blocks `~/.ssh/id_rsa` exactly like the old code did.
+ *   - `~` and `${AGENT_DIR}` are expanded before compilation.
+ *
+ * Performance:
+ *   - The config (and its compiled matchers) is loaded once on `session_start`
+ *     and cached for the rest of the session. The `tool_call` hot path no
+ *     longer hits the filesystem on every call.
  *
  * Usage:
  * - `pi --no-sandbox` - disable sandboxing
@@ -27,12 +41,19 @@
  */
 
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join, resolve, relative, isAbsolute, dirname } from "node:path";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SandboxManager, type SandboxRuntimeConfig } from "@anthropic-ai/sandbox-runtime";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { type BashOperations, createBashTool, isToolCallEventType, getAgentDir } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import {
+	type BashOperations,
+	createBashTool,
+	getAgentDir,
+	isToolCallEventType,
+} from "@earendil-works/pi-coding-agent";
+import picomatch from "picomatch";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -40,24 +61,194 @@ interface SandboxConfig extends SandboxRuntimeConfig {
 	enabled?: boolean;
 }
 
-// Load config from JSON files only (project > global, no defaults)
-function loadConfig(cwd: string): SandboxConfig | null {
+interface CompiledMatcher {
+	/** The original pattern string, for diagnostic messages. */
+	pattern: string;
+	/** True if the resolved target path matches the pattern (exact, descendant, or basename). */
+	matches: (target: string) => boolean;
+}
+
+// Filesystems that are case-insensitive by default — enable picomatch `nocase`
+// so `~/.SSH/id_rsa` cannot bypass a `~/.ssh` deny on macOS / Windows.
+const PICOMATCH_NOCASE = process.platform === "darwin" || process.platform === "win32";
+const PICOMATCH_OPTS = { dot: true, nocase: PICOMATCH_NOCASE } as const;
+
+interface CompiledRules {
+	denyRead: CompiledMatcher[];
+	allowWrite: CompiledMatcher[];
+	denyWrite: CompiledMatcher[];
+}
+
+interface CachedConfig {
+	cwd: string;
+	config: SandboxConfig;
+	rules: CompiledRules;
+}
+
+// === Validation ===
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function isStringArray(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every((v) => typeof v === "string");
+}
+
+function isSandboxConfig(value: unknown): value is SandboxConfig {
+	if (!isRecord(value)) return false;
+
+	// `enabled` is optional but, if present, must be boolean.
+	if ("enabled" in value && typeof value.enabled !== "boolean") return false;
+
+	// `network` is optional.
+	if ("network" in value && isRecord(value.network)) {
+		if ("allowedDomains" in value.network && !isStringArray(value.network.allowedDomains)) return false;
+		if ("deniedDomains" in value.network && !isStringArray(value.network.deniedDomains)) return false;
+	}
+
+	// `filesystem` is required.
+	if (!isRecord(value.filesystem)) return false;
+	const fs = value.filesystem;
+	if ("denyRead" in fs && !isStringArray(fs.denyRead)) return false;
+	if ("allowWrite" in fs && !isStringArray(fs.allowWrite)) return false;
+	if ("denyWrite" in fs && !isStringArray(fs.denyWrite)) return false;
+
+	return true;
+}
+
+// === Path / pattern helpers ===
+
+function expandPath(path: string): string {
+	let expanded = path;
+	if (expanded.includes("${AGENT_DIR}")) {
+		expanded = expanded.replace(/\${AGENT_DIR}/g, getAgentDir());
+	}
+	if (expanded.startsWith("~/") || expanded === "~") {
+		expanded = expanded === "~" ? homedir() : join(homedir(), expanded.slice(2));
+	}
+	return expanded;
+}
+
+// Glob meta-characters that picomatch interprets. Anything containing one of
+// these can't be safely realpath'd at compile time — the literal string isn't
+// a real path.
+const GLOB_META_RE = /[*?{}[\]!()]/;
+
+function isPlainPath(p: string): boolean {
+	return !GLOB_META_RE.test(p);
+}
+
+function realpathIfExists(p: string): string {
+	try {
+		return realpathSync(p);
+	} catch {
+		return p;
+	}
+}
+
+/**
+ * Compile a single config pattern into a matcher.
+ *
+ * Rules:
+ *   - Patterns with no `/` are treated as basename globs and match the final
+ *     path segment of the target at any depth (e.g. `*.pem` matches
+ *     `/x/y/secret.pem`).
+ *   - Patterns with a `/` (or `~`, `${...}`) are resolved to an absolute path
+ *     and used as anchored globs. The matcher also matches any descendant of
+ *     the resolved path so that listing a directory blocks everything inside.
+ */
+function compileMatcher(pattern: string, base: string): CompiledMatcher {
+	const expanded = expandPath(pattern);
+
+	if (!expanded.includes("/")) {
+		// Basename-only pattern.
+		const basenameMatch = picomatch(expanded, PICOMATCH_OPTS);
+		const absRoot = resolve(base, expanded);
+		const absResolved = isPlainPath(absRoot) ? realpathIfExists(absRoot) : absRoot;
+		const anchored = picomatch(absResolved, PICOMATCH_OPTS);
+		const descendant = picomatch(`${absResolved}/**`, PICOMATCH_OPTS);
+		return {
+			pattern,
+			matches(target) {
+				if (anchored(target) || descendant(target)) return true;
+				const last = target.split("/").pop() ?? "";
+				return basenameMatch(last);
+			},
+		};
+	}
+
+	const absolute = isAbsolute(expanded) ? expanded : resolve(base, expanded);
+	// Realpath plain (non-glob) patterns so a deny like `~/safe` (symlink to
+	// `~/.ssh`) still catches reads of files inside the linked target — which
+	// are themselves realpath'd by resolveTargetSafe before matching.
+	const absResolved = isPlainPath(absolute) ? realpathIfExists(absolute) : absolute;
+	const anchored = picomatch(absResolved, PICOMATCH_OPTS);
+	const descendant = picomatch(`${absResolved}/**`, PICOMATCH_OPTS);
+	return {
+		pattern,
+		matches(target) {
+			return anchored(target) || descendant(target);
+		},
+	};
+}
+
+/**
+ * Resolve a tool-call target path through symlinks.
+ *
+ * Without realpath, a denied directory can be reached via a symlink (for
+ * example `~/safe → ~/.ssh`). We realpath the target when it exists, and
+ * realpath the parent (joined with the basename) for paths that don't exist
+ * yet — the common case for write/edit creating a new file.
+ */
+function resolveTargetSafe(input: string, cwd: string): string {
+	const abs = resolve(cwd, expandPath(input));
+	try {
+		return realpathSync(abs);
+	} catch {
+		try {
+			return join(realpathSync(dirname(abs)), basename(abs));
+		} catch {
+			return abs;
+		}
+	}
+}
+
+function compileRules(config: SandboxConfig, cwd: string): CompiledRules {
+	const fs = config.filesystem ?? { allowWrite: ["."] };
+	return {
+		denyRead: (fs.denyRead ?? []).map((p) => compileMatcher(p, cwd)),
+		allowWrite: (fs.allowWrite ?? ["."]).map((p) => compileMatcher(p, cwd)),
+		denyWrite: (fs.denyWrite ?? []).map((p) => compileMatcher(p, cwd)),
+	};
+}
+
+// === Config loading ===
+
+function loadConfigFromDisk(cwd: string, ctx: ExtensionContext): SandboxConfig | null {
 	const paths = [
-		join(cwd, ".pi", "sandbox.json"),  // project-local
-		join(__dirname, "config.json"),    // extension config (global/default)
+		join(cwd, ".pi", "sandbox.json"), // project-local
+		join(__dirname, "config.json"), // extension config (global default)
 	];
 
 	for (const configPath of paths) {
-		if (existsSync(configPath)) {
-			try {
-				return JSON.parse(readFileSync(configPath, "utf-8")) as SandboxConfig;
-			} catch (e) {
-				console.error(`Warning: Could not parse ${configPath}: ${e}`);
+		if (!existsSync(configPath)) continue;
+		try {
+			const parsed: unknown = JSON.parse(readFileSync(configPath, "utf-8"));
+			if (!isSandboxConfig(parsed)) {
+				ctx.ui.notify(`Sandbox config ${configPath} failed validation`, "error");
+				continue;
 			}
+			return parsed;
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			ctx.ui.notify(`Could not parse sandbox config ${configPath}: ${message}`, "error");
 		}
 	}
 	return null;
 }
+
+// === Sandboxed bash ops ===
 
 function createSandboxedBashOps(): BashOperations {
 	return {
@@ -68,7 +259,7 @@ function createSandboxedBashOps(): BashOperations {
 
 			const wrappedCommand = await SandboxManager.wrapWithSandbox(command);
 
-			return new Promise((resolve, reject) => {
+			return new Promise((resolveExec, reject) => {
 				const child = spawn("bash", ["-c", wrappedCommand], {
 					cwd,
 					detached: true,
@@ -99,7 +290,7 @@ function createSandboxedBashOps(): BashOperations {
 					reject(err);
 				});
 
-				const onAbort = () => {
+				const onAbort = (): void => {
 					if (child.pid) {
 						try {
 							process.kill(-child.pid, "SIGKILL");
@@ -120,7 +311,7 @@ function createSandboxedBashOps(): BashOperations {
 					} else if (timedOut) {
 						reject(new Error(`timeout:${timeout}`));
 					} else {
-						resolve({ exitCode: code });
+						resolveExec({ exitCode: code });
 					}
 				});
 			});
@@ -128,67 +319,9 @@ function createSandboxedBashOps(): BashOperations {
 	};
 }
 
-// Tool call permission helpers
-function expandPath(path: string): string {
-	// Expand ${AGENT_DIR} to actual agent directory
-	if (path.includes("${AGENT_DIR}")) {
-		path = path.replace(/\${AGENT_DIR}/g, getAgentDir());
-	}
-	// Expand ~ to home directory
-	if (path.startsWith("~/")) {
-		path = path.replace("~/", process.env.HOME + "/");
-	}
-	return path;
-}
+// === Extension ===
 
-function isPathBlocked(targetPath: string, blockedPaths: string[], cwd: string): { blocked: boolean; matched?: string } {
-	const resolvedTarget = resolve(cwd, expandPath(targetPath));
-
-	for (const blocked of blockedPaths) {
-		// For relative paths (like ".env" or ".pi/extensions"), resolve against cwd
-		// and use the same prefix-check logic as absolute paths.
-		if (!blocked.startsWith("~/") && !blocked.startsWith("${") && !isAbsolute(blocked)) {
-			const resolvedBlocked = resolve(cwd, expandPath(blocked));
-			const rel = relative(resolvedBlocked, resolvedTarget);
-
-			// Target equals the blocked path, or is inside it
-			if (resolvedTarget === resolvedBlocked || (!rel.startsWith("..") && rel !== "")) {
-				return { blocked: true, matched: blocked };
-			}
-
-			// Also match by basename for single-segment patterns like ".env"
-			if (!blocked.includes("/") && resolvedTarget.split("/").pop() === blocked) {
-				return { blocked: true, matched: blocked };
-			}
-			continue;
-		}
-
-		// For absolute/home/variable paths
-		const resolvedBlocked = resolve(expandPath(blocked));
-		const rel = relative(resolvedBlocked, resolvedTarget);
-
-		if ((!rel.startsWith("..") && rel !== "") || resolvedTarget === resolvedBlocked) {
-			return { blocked: true, matched: blocked };
-		}
-	}
-	return { blocked: false };
-}
-
-function isWriteAllowed(targetPath: string, allowWrite: string[], cwd: string): boolean {
-	const resolvedTarget = resolve(expandPath(targetPath));
-
-	for (const allowed of allowWrite) {
-		const resolvedAllowed = resolve(cwd, expandPath(allowed));
-		const rel = relative(resolvedAllowed, resolvedTarget);
-
-		if ((!rel.startsWith("..") && rel !== "") || resolvedTarget === resolvedAllowed) {
-			return true;
-		}
-	}
-	return false;
-}
-
-export default function (pi: ExtensionAPI) {
+export default function (pi: ExtensionAPI): void {
 	pi.registerFlag("no-sandbox", {
 		description: "Disable sandboxing",
 		type: "boolean",
@@ -200,6 +333,40 @@ export default function (pi: ExtensionAPI) {
 
 	let sandboxEnabled = false;
 	let sandboxInitialized = false;
+	let cached: CachedConfig | null = null;
+
+	/**
+	 * Return the compiled rules for the given cwd, re-loading and re-compiling
+	 * when the cwd has changed.
+	 *
+	 * On a cwd change we MUST re-read `.pi/sandbox.json` from the new directory:
+	 * different projects may ship different (stricter) sandbox rules and silently
+	 * carrying the old config forward is a security regression. If the new cwd
+	 * has no project config we fall back to the global default just like
+	 * `session_start` does.
+	 */
+	function getRules(ctx: ExtensionContext): CompiledRules | null {
+		if (!cached) return null;
+		if (cached.cwd === ctx.cwd) return cached.rules;
+
+		const freshConfig = loadConfigFromDisk(ctx.cwd, ctx);
+		if (freshConfig && freshConfig.enabled !== false) {
+			cached = { cwd: ctx.cwd, config: freshConfig, rules: compileRules(freshConfig, ctx.cwd) };
+		} else {
+			// No config in the new cwd (or it's disabled). Keep the previous config
+			// but re-anchor relative patterns to the new cwd. Better than silently
+			// failing open.
+			cached = { cwd: ctx.cwd, config: cached.config, rules: compileRules(cached.config, ctx.cwd) };
+		}
+		return cached.rules;
+	}
+
+	function findFirstMatch(target: string, matchers: CompiledMatcher[]): CompiledMatcher | null {
+		for (const m of matchers) {
+			if (m.matches(target)) return m;
+		}
+		return null;
+	}
 
 	pi.registerTool({
 		...localBash,
@@ -225,20 +392,17 @@ export default function (pi: ExtensionAPI) {
 	pi.on("tool_call", async (event, ctx) => {
 		if (!sandboxEnabled || !sandboxInitialized) return;
 
-		const config = loadConfig(ctx.cwd);
-		if (!config?.filesystem) return;
-
-		const denyRead = config.filesystem.denyRead || [];
-		const allowWrite = config.filesystem.allowWrite || ["."];
-		const denyWrite = config.filesystem.denyWrite || [];
+		const rules = getRules(ctx);
+		if (!rules) return;
 
 		// Handle read
 		if (isToolCallEventType("read", event)) {
-			const check = isPathBlocked(event.input.path, denyRead, ctx.cwd);
-			if (check.blocked) {
+			const target = resolveTargetSafe(event.input.path, ctx.cwd);
+			const hit = findFirstMatch(target, rules.denyRead);
+			if (hit) {
 				return {
 					block: true,
-					reason: `sandbox: read blocked - ${event.input.path} matches "${check.matched}"`,
+					reason: `sandbox: read blocked - ${event.input.path} matches "${hit.pattern}"`,
 				};
 			}
 			return;
@@ -247,21 +411,22 @@ export default function (pi: ExtensionAPI) {
 		// Handle write/edit
 		if (isToolCallEventType("write", event) || isToolCallEventType("edit", event)) {
 			const path = event.input.path;
+			const target = resolveTargetSafe(path, ctx.cwd);
 
-			// Check denyWrite patterns first
-			const denyCheck = isPathBlocked(path, denyWrite, ctx.cwd);
-			if (denyCheck.blocked) {
+			const denyHit = findFirstMatch(target, rules.denyWrite);
+			if (denyHit) {
 				return {
 					block: true,
-					reason: `sandbox: write blocked - ${path} matches "${denyCheck.matched}"`,
+					reason: `sandbox: write blocked - ${path} matches "${denyHit.pattern}"`,
 				};
 			}
 
-			// Check if write is in allowed paths
-			if (!isWriteAllowed(path, allowWrite, ctx.cwd)) {
+			const allowHit = findFirstMatch(target, rules.allowWrite);
+			if (!allowHit) {
+				const allowList = rules.allowWrite.map((m) => m.pattern).join(", ") || "(none)";
 				return {
 					block: true,
-					reason: `sandbox: write blocked - ${path} outside allowed paths: ${allowWrite.join(", ")}`,
+					reason: `sandbox: write blocked - ${path} outside allowed paths: ${allowList}`,
 				};
 			}
 			return;
@@ -269,6 +434,7 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_start", async (_event, ctx) => {
+		cached = null;
 		const noSandbox = pi.getFlag("no-sandbox") as boolean;
 
 		if (noSandbox) {
@@ -277,7 +443,7 @@ export default function (pi: ExtensionAPI) {
 			return;
 		}
 
-		const config = loadConfig(ctx.cwd);
+		const config = loadConfigFromDisk(ctx.cwd, ctx);
 
 		if (!config) {
 			sandboxEnabled = false;
@@ -304,7 +470,6 @@ export default function (pi: ExtensionAPI) {
 				enableWeakerNestedSandbox?: boolean;
 			};
 
-			// Validate required filesystem section
 			if (!config.filesystem) {
 				ctx.ui.notify("Sandbox config missing 'filesystem' section", "error");
 				sandboxEnabled = false;
@@ -312,12 +477,17 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			await SandboxManager.initialize({
-				network: config.network || { allowedDomains: [], deniedDomains: [] },
+				network: config.network ?? { allowedDomains: [], deniedDomains: [] },
 				filesystem: config.filesystem,
 				ignoreViolations: configExt.ignoreViolations,
 				enableWeakerNestedSandbox: configExt.enableWeakerNestedSandbox,
 			});
 
+			cached = {
+				cwd: ctx.cwd,
+				config,
+				rules: compileRules(config, ctx.cwd),
+			};
 			sandboxEnabled = true;
 			sandboxInitialized = true;
 
@@ -330,7 +500,10 @@ export default function (pi: ExtensionAPI) {
 			ctx.ui.notify("Sandbox initialized", "info");
 		} catch (err) {
 			sandboxEnabled = false;
-			ctx.ui.notify(`Sandbox initialization failed: ${err instanceof Error ? err.message : err}`, "error");
+			ctx.ui.notify(
+				`Sandbox initialization failed: ${err instanceof Error ? err.message : String(err)}`,
+				"error",
+			);
 		}
 	});
 
@@ -338,8 +511,9 @@ export default function (pi: ExtensionAPI) {
 		if (sandboxInitialized) {
 			try {
 				await SandboxManager.reset();
-			} catch {
-				// Ignore cleanup errors
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				console.warn("[sandbox] reset failed:", message);
 			}
 		}
 	});
@@ -352,12 +526,12 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 
-			const config = loadConfig(ctx.cwd);
-			if (!config) {
+			if (!cached) {
 				ctx.ui.notify("No config loaded", "error");
 				return;
 			}
 
+			const { config } = cached;
 			const lines = [
 				"Sandbox Configuration:",
 				"",
@@ -365,7 +539,7 @@ export default function (pi: ExtensionAPI) {
 				`  Allowed: ${config.network?.allowedDomains?.join(", ") || "(none)"}`,
 				`  Denied: ${config.network?.deniedDomains?.join(", ") || "(none)"}`,
 				"",
-				"Filesystem:",
+				"Filesystem (picomatch globs):",
 				`  Deny Read: ${config.filesystem?.denyRead?.join(", ") || "(none)"}`,
 				`  Allow Write: ${config.filesystem?.allowWrite?.join(", ") || "(none)"}`,
 				`  Deny Write: ${config.filesystem?.denyWrite?.join(", ") || "(none)"}`,
