@@ -37,6 +37,27 @@ const C = {
 	dim: "\x1b[38;2;98;114;164m",
 	reset: "\x1b[0m",
 } as const;
+// Universal ANSI reset — not theme-specific.
+const RESET = "\x1b[0m";
+
+// State broadcast by the plan-mode extension on pi.events.
+interface PlanModeStatus {
+	enabled: boolean;
+	executing: boolean;
+	completed: number;
+	total: number;
+}
+
+function isPlanModeStatus(value: unknown): value is PlanModeStatus {
+	if (typeof value !== "object" || value === null) return false;
+	const v = value as Record<string, unknown>;
+	return (
+		typeof v.enabled === "boolean" &&
+		typeof v.executing === "boolean" &&
+		typeof v.completed === "number" &&
+		typeof v.total === "number"
+	);
+}
 
 // Nerd Font glyphs (MesloLGS Nerd Font Mono)
 const ICONS = {
@@ -134,6 +155,16 @@ export default function (pi: ExtensionAPI): void {
 	let lastCwd = "";
 	let totals: UsageTotals = { ...EMPTY_TOTALS };
 
+	let planMode: PlanModeStatus = { enabled: false, executing: false, completed: 0, total: 0 };
+	// Stored by apply() so the plan-mode listener can trigger an immediate
+	// footer re-render when plan mode is toggled.
+	let requestFooterRender: (() => void) | null = null;
+
+	pi.events.on("plan-mode:status", (data) => {
+		if (!isPlanModeStatus(data)) return;
+		planMode = data;
+		requestFooterRender?.();
+	});
 	function loadConfig(ctx: ExtensionContext): void {
 		// Scan in reverse so the *most recent* persisted toggle wins.
 		const entries = ctx.sessionManager.getEntries();

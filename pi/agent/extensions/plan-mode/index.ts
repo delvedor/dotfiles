@@ -120,6 +120,16 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 		} else {
 			ctx.ui.setWidget("plan-todos", undefined);
 		}
+
+		// Notify the statusline (and any other extension listening) so it can
+		// include a plan-mode indicator in the footer without polling.
+		const completed = todoItems.filter((t) => t.completed).length;
+		pi.events.emit("plan-mode:status", {
+			enabled: planModeEnabled,
+			executing: executionMode && todoItems.length > 0,
+			completed,
+			total: todoItems.length,
+		});
 	}
 
 	/**
@@ -349,15 +359,19 @@ After completing a step, include a [DONE:n] tag in your response.`,
 				todoItems.length > 0
 					? `Execute the plan. Start with: ${todoItems[0].text}`
 					: "Execute the plan you just created.";
+			// Use deliverAs: "nextTurn" so pi queues the turn trigger after the
+			// current agent_end processing settles. Calling triggerTurn: true
+			// directly inside agent_end causes "Agent is already processing".
 			pi.sendMessage(
 				{ customType: "plan-mode-execute", content: execMessage, display: true },
-				{ triggerTurn: true },
+				{ deliverAs: "nextTurn" },
 			);
 			persistState();
 		} else if (choice === "Refine the plan") {
 			const refinement = await ctx.ui.editor("Refine the plan:", "");
 			if (refinement?.trim()) {
-				pi.sendUserMessage(refinement.trim());
+				// Same issue: followUp queues after current agent_end handler returns.
+				pi.sendUserMessage(refinement.trim(), { deliverAs: "followUp" });
 			}
 		}
 	});
