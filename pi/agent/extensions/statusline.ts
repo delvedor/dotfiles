@@ -50,6 +50,17 @@ function isPlanModeStatus(value: unknown): value is PlanModeStatus {
 	);
 }
 
+interface RtkStatus {
+	enabled: boolean;
+	available: boolean;
+}
+
+function isRtkStatus(value: unknown): value is RtkStatus {
+	if (typeof value !== "object" || value === null) return false;
+	const v = value as Record<string, unknown>;
+	return typeof v.enabled === "boolean" && typeof v.available === "boolean";
+}
+
 // Nerd Font glyphs (MesloLGS Nerd Font Mono)
 const ICONS = {
 	cpu: "\u{F4BC}", // nf-mdi-cpu
@@ -146,6 +157,7 @@ export default function (pi: ExtensionAPI): void {
 	let lastCwd = "";
 	let totals: UsageTotals = { ...EMPTY_TOTALS };
 	let planMode: PlanModeStatus = { enabled: false, executing: false, completed: 0, total: 0 };
+	let rtkStatus: RtkStatus = { enabled: false, available: false };
 	// Stored by apply() so the plan-mode listener can trigger an immediate
 	// footer re-render when plan mode is toggled.
 	let requestFooterRender: (() => void) | null = null;
@@ -153,6 +165,11 @@ export default function (pi: ExtensionAPI): void {
 	pi.events.on("plan-mode:status", (data) => {
 		if (!isPlanModeStatus(data)) return;
 		planMode = data;
+		requestFooterRender?.();
+	});
+	pi.events.on("rtk:status", (data) => {
+		if (!isRtkStatus(data)) return;
+		rtkStatus = data;
 		requestFooterRender?.();
 	});
 	function loadConfig(ctx: ExtensionContext): void {
@@ -227,6 +244,11 @@ export default function (pi: ExtensionAPI): void {
 				tokenStr += ` ${t.getFgAnsi("success")}$${totals.cost.toFixed(4)}`;
 			parts.push(tokenStr + RESET);
 		}
+
+		// RTK status
+		parts.push(rtkStatus.enabled
+			? `${t.getFgAnsi("success")}RTK✓${RESET}`
+			: `${t.getFgAnsi("warning")}RTK✗${RESET}`);
 
 		// Path
 		const { parent, current } = tidePath(ctx.cwd, homedir());
