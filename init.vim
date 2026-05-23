@@ -3,23 +3,14 @@ call plug#begin('~/.local/share/nvim/plugged')
 
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'w0rp/ale'
-" Plug 'ryanoasis/vim-devicons'
-" Plug 'vim-airline/vim-airline'
-" Plug 'vim-airline/vim-airline-themes'
-" Plug 'rakr/vim-one'
-" Plug 'tomasiser/vim-code-dark'
-" Icons for both plugins (mandatory for Nerd Fonts)
 Plug 'nvim-tree/nvim-web-devicons'
 Plug 'nvim-lualine/lualine.nvim'
 Plug 'nvim-tree/nvim-tree.lua'
-Plug 'Mofiqul/dracula.nvim'
+Plug 'delvedor/dracula-alucard.nvim'
 Plug 'pangloss/vim-javascript'
 Plug 'HerringtonDarkholme/yats.vim'
 Plug 'tpope/vim-sensible'
 Plug 'tpope/vim-commentary', {'on': '<Plug>Commentary'}
-" Plug 'scrooloose/nerdtree', { 'on': 'NERDTreeToggle' }
-" Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
-" Plug 'junegunn/fzf.vim'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim'
 Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'make' }
@@ -35,7 +26,7 @@ lua << EOF
 -- Configure Lualine (Status bar at the bottom)
 require('lualine').setup {
   options = {
-    theme = 'dracula', -- Matches the colorscheme above
+    theme = 'dracula-nvim', -- Matches the colorscheme above
     section_separators = { left = '', right = '' },
     component_separators = { left = '', right = '' },
   }
@@ -109,15 +100,9 @@ if has('nvim-0.3.2') || has("patch-8.1.0360")
 endif
 
 " Color scheme
-" let g:airline_theme='one'
-" colorscheme one
-" let g:airline_theme = 'codedark'
-" colorscheme codedark
-" let g:airline_theme = 'base16_dracula'
-colorscheme dracula
-" set to 'light' to use the light version
-" of the color scheme
+" either 'dark' or 'light'
 set background=dark
+colorscheme dracula
 let g:airline_powerline_fonts = 1
 
 " NERDTree

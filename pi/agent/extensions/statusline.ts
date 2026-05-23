@@ -1,13 +1,16 @@
 /**
- * Dracula Status Line Extension for pi.dev
+ * Status Line Extension for pi.dev
  *
  * Features:
- * - Dracula theme colors (truecolor RGB)
+ * - Fully theme-aware: reads ANSI codes from the active pi theme at render time
  * - Tide-style abbreviated paths
  * - Nerd Font icons
  * - Model, context %, cost, path, git branch
  *
  * Implementation notes:
+ *   - Colors come from `theme.getFgAnsi(semanticRole)` — no hardcoded palette.
+ *     Switching themes (e.g. dracula ↔ alucard) is reflected on the next render
+ *     without any reload or event wiring.
  *   - Token/cost totals are cached and only recomputed on turn_end / model_select /
  *     session_start, instead of sweeping the entire branch on every footer render.
  *   - Git branch is resolved with a single combined invocation
@@ -25,18 +28,6 @@ import { truncateToWidth } from "@earendil-works/pi-tui";
 import { execSync } from "node:child_process";
 import { homedir } from "node:os";
 
-// === Dracula Theme Colors ===
-const C = {
-	purple: "\x1b[38;2;189;147;249m",
-	pink: "\x1b[38;2;255;121;198m",
-	cyan: "\x1b[38;2;139;233;253m",
-	green: "\x1b[38;2;80;250;123m",
-	yellow: "\x1b[38;2;241;250;140m",
-	orange: "\x1b[38;2;255;184;108m",
-	fg: "\x1b[38;2;248;248;242m",
-	dim: "\x1b[38;2;98;114;164m",
-	reset: "\x1b[0m",
-} as const;
 // Universal ANSI reset — not theme-specific.
 const RESET = "\x1b[0m";
 
@@ -154,7 +145,6 @@ export default function (pi: ExtensionAPI): void {
 	let branchCache = "";
 	let lastCwd = "";
 	let totals: UsageTotals = { ...EMPTY_TOTALS };
-
 	let planMode: PlanModeStatus = { enabled: false, executing: false, completed: 0, total: 0 };
 	// Stored by apply() so the plan-mode listener can trigger an immediate
 	// footer re-render when plan mode is toggled.
@@ -194,42 +184,60 @@ export default function (pi: ExtensionAPI): void {
 	}
 
 	function buildLine(ctx: ExtensionContext, sessionName?: string): string {
+		const t = ctx.ui.theme;
 		const parts: string[] = [];
-		const model = ctx.model?.id?.split("/").pop() || ctx.model?.id || "?";
+		const model = ctx.model?.id?.split("/").pop() ?? ctx.model?.id ?? "?";
+
+		// Plan mode indicator — shown only when active
+		if (planMode.executing) {
+			parts.push(`${t.getFgAnsi("accent")}📋 ${planMode.completed}/${planMode.total}${RESET}`);
+		} else if (planMode.enabled) {
+			parts.push(`${t.getFgAnsi("warning")}⏸ plan${RESET}`);
+		}
 
 		// Session name (if set)
 		if (sessionName) {
-			parts.push(`${C.dim}${ICONS.session} ${C.pink}${sessionName}${C.reset}`);
+			parts.push(`${t.getFgAnsi("muted")}${ICONS.session} ${t.getFgAnsi("syntaxKeyword")}${sessionName}${RESET}`);
 		}
 
 		// Model
-		parts.push(`${C.dim}${ICONS.cpu} ${C.purple}${model}${C.reset}`);
+		parts.push(`${t.getFgAnsi("muted")}${ICONS.cpu} ${t.getFgAnsi("borderAccent")}${model}${RESET}`);
 
 		// Context usage
 		const usage = ctx.getContextUsage();
 		if (usage && ctx.model?.contextWindow) {
 			const pct = Math.round((usage.tokens / ctx.model.contextWindow) * 100);
 			const ctxSize = fmtCtx(ctx.model.contextWindow);
-			parts.push(`${C.dim}${ICONS.database} ${C.yellow}ctx:${C.fg}${pct}%${C.dim}(${ctxSize})${C.reset}`);
+			parts.push(
+				`${t.getFgAnsi("muted")}${ICONS.database} ${t.getFgAnsi("thinkingMedium")}ctx:${t.getFgAnsi("text")}${pct}%${t.getFgAnsi("muted")}(${ctxSize})${RESET}`,
+			);
 		}
 
-		// Cost / tokens (from cached totals)
+		// Token counts + cost (from cached totals)
 		if (totals.input > 0 || totals.output > 0) {
-			let tokenStr = `${C.dim}${ICONS.usage} ${C.orange}${fmtCtx(totals.input)}${C.dim}in ${C.orange}${fmtCtx(totals.output)}${C.dim}out`;
-			if (totals.cacheRead > 0) tokenStr += ` ${C.yellow}${fmtCtx(totals.cacheRead)}${C.dim}cr`;
-			if (totals.cacheWrite > 0) tokenStr += ` ${C.yellow}${fmtCtx(totals.cacheWrite)}${C.dim}cw`;
-			if (totals.cost > 0) tokenStr += ` ${C.green}$${totals.cost.toFixed(4)}`;
-			parts.push(tokenStr + C.reset);
+			let tokenStr =
+				`${t.getFgAnsi("muted")}${ICONS.usage} ` +
+				`${t.getFgAnsi("bashMode")}${fmtCtx(totals.input)}${t.getFgAnsi("muted")}in ` +
+				`${t.getFgAnsi("bashMode")}${fmtCtx(totals.output)}${t.getFgAnsi("muted")}out`;
+			if (totals.cacheRead > 0)
+				tokenStr += ` ${t.getFgAnsi("thinkingMedium")}${fmtCtx(totals.cacheRead)}${t.getFgAnsi("muted")}cr`;
+			if (totals.cacheWrite > 0)
+				tokenStr += ` ${t.getFgAnsi("thinkingMedium")}${fmtCtx(totals.cacheWrite)}${t.getFgAnsi("muted")}cw`;
+			if (totals.cost > 0)
+				tokenStr += ` ${t.getFgAnsi("success")}$${totals.cost.toFixed(4)}`;
+			parts.push(tokenStr + RESET);
 		}
 
 		// Path
 		const { parent, current } = tidePath(ctx.cwd, homedir());
-		const pathStr = parent ? `${C.dim}${parent}${C.cyan}${current}${C.reset}` : `${C.cyan}${current}${C.reset}`;
-		parts.push(`${C.dim}${ICONS.folder} ${pathStr}`);
+		const pathStr = parent
+			? `${t.getFgAnsi("muted")}${parent}${t.getFgAnsi("syntaxType")}${current}${RESET}`
+			: `${t.getFgAnsi("syntaxType")}${current}${RESET}`;
+		parts.push(`${t.getFgAnsi("muted")}${ICONS.folder} ${pathStr}`);
 
 		// Git branch
 		if (branchCache) {
-			parts.push(`${C.dim}${ICONS.branch} ${C.green}${branchCache}${C.reset}`);
+			parts.push(`${t.getFgAnsi("muted")}${ICONS.branch} ${t.getFgAnsi("success")}${branchCache}${RESET}`);
 		}
 
 		return parts.join("  ");
@@ -244,6 +252,8 @@ export default function (pi: ExtensionAPI): void {
 		updateBranch(ctx.cwd);
 
 		ctx.ui.setFooter((tui, _theme, footerData) => {
+			requestFooterRender = () => tui.requestRender();
+
 			const unsubBranch = footerData.onBranchChange(() => {
 				branchCache = "";
 				updateBranch(ctx.cwd);
@@ -252,6 +262,7 @@ export default function (pi: ExtensionAPI): void {
 
 			return {
 				dispose: () => {
+					requestFooterRender = null;
 					unsubBranch();
 				},
 				invalidate() {},
