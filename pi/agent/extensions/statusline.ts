@@ -61,6 +61,15 @@ function isRtkStatus(value: unknown): value is RtkStatus {
 	return typeof v.enabled === "boolean" && typeof v.available === "boolean";
 }
 
+interface CavemanStatus {
+	level: string;
+}
+
+function isCavemanStatus(value: unknown): value is CavemanStatus {
+	if (typeof value !== "object" || value === null) return false;
+	return typeof (value as Record<string, unknown>).level === "string";
+}
+
 // Nerd Font glyphs (MesloLGS Nerd Font Mono)
 const ICONS = {
 	cpu: "\u{F4BC}", // nf-mdi-cpu
@@ -158,6 +167,7 @@ export default function (pi: ExtensionAPI): void {
 	let totals: UsageTotals = { ...EMPTY_TOTALS };
 	let planMode: PlanModeStatus = { enabled: false, executing: false, completed: 0, total: 0 };
 	let rtkStatus: RtkStatus = { enabled: false, available: false };
+	let cavemanLevel: string = "full";
 	// Stored by apply() so the plan-mode listener can trigger an immediate
 	// footer re-render when plan mode is toggled.
 	let requestFooterRender: (() => void) | null = null;
@@ -170,6 +180,11 @@ export default function (pi: ExtensionAPI): void {
 	pi.events.on("rtk:status", (data) => {
 		if (!isRtkStatus(data)) return;
 		rtkStatus = data;
+		requestFooterRender?.();
+	});
+	pi.events.on("caveman:status", (data) => {
+		if (!isCavemanStatus(data)) return;
+		cavemanLevel = data.level;
 		requestFooterRender?.();
 	});
 	function loadConfig(ctx: ExtensionContext): void {
@@ -230,7 +245,14 @@ export default function (pi: ExtensionAPI): void {
 			);
 		}
 
-		// Token counts + cost (from cached totals)
+		// Token counts + cost + RTK + caveman (single-spaced group)
+		const rtkStr = rtkStatus.enabled
+			? `${t.getFgAnsi("success")}RTK✓${RESET}`
+			: `${t.getFgAnsi("warning")}RTK✗${RESET}`;
+		const caveStr = cavemanLevel !== "off"
+			? `${t.getFgAnsi("accent")}cave:${cavemanLevel}${RESET}`
+			: `${t.getFgAnsi("muted")}cave:off${RESET}`;
+
 		if (totals.input > 0 || totals.output > 0) {
 			let tokenStr =
 				`${t.getFgAnsi("muted")}${ICONS.usage} ` +
@@ -241,14 +263,11 @@ export default function (pi: ExtensionAPI): void {
 			if (totals.cacheWrite > 0)
 				tokenStr += ` ${t.getFgAnsi("thinkingMedium")}${fmtCtx(totals.cacheWrite)}${t.getFgAnsi("muted")}cw`;
 			if (totals.cost > 0)
-				tokenStr += ` ${t.getFgAnsi("success")}$${totals.cost.toFixed(4)}`;
-			parts.push(tokenStr + RESET);
+				tokenStr += ` ${t.getFgAnsi("text")}$${totals.cost.toFixed(4)}`;
+			parts.push(`${tokenStr}${RESET} ${rtkStr} ${caveStr}`);
+		} else {
+			parts.push(`${rtkStr} ${caveStr}`);
 		}
-
-		// RTK status
-		parts.push(rtkStatus.enabled
-			? `${t.getFgAnsi("success")}RTK✓${RESET}`
-			: `${t.getFgAnsi("warning")}RTK✗${RESET}`);
 
 		// Path
 		const { parent, current } = tidePath(ctx.cwd, homedir());
