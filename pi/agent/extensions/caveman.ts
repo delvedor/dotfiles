@@ -76,7 +76,7 @@ Not: "The new object reference created on each render causes a re-render."
 Yes: "Inline obj → new ref → re-render. useMemo."`,
 };
 
-function buildPrompt(level: Exclude<CavemanLevel, "off">): string {
+export function buildPrompt(level: Exclude<CavemanLevel, "off">): string {
 	return `${CAVEMAN_BASE}\n\n${LEVEL_INSTRUCTIONS[level]}`;
 }
 

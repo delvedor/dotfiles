@@ -16,6 +16,7 @@ import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import { complete, type Message, type TextContent } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, SessionEntry } from "@earendil-works/pi-coding-agent";
 import { BorderedLoader, convertToLlm, serializeConversation } from "@earendil-works/pi-coding-agent";
+import { buildPrompt } from "./caveman.js";
 
 const SYSTEM_PROMPT = `You are a context transfer assistant. Given a conversation history and the user's goal for a new thread, generate a focused prompt that:
 
@@ -145,7 +146,7 @@ export default function (pi: ExtensionAPI): void {
 
 					const response = await complete(
 						model,
-						{ systemPrompt: SYSTEM_PROMPT, messages: [userMessage] },
+						{ systemPrompt: `${SYSTEM_PROMPT}\n\n${buildPrompt("ultra")}`, messages: [userMessage] },
 						{ apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal },
 					);
 
