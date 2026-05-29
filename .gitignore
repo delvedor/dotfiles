@@ -1,2 +1,7 @@
 .DS_Store
 *.swp
+pi/agent/auth.json
+pi/agent/litellm-models.json
+pi/agent/run-history.jsonl
+pi/agent/sessions
+pi/agent/npm
