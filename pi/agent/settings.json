@@ -1,12 +1,25 @@
 {
-  "lastChangelogVersion": "0.75.4",
+  "lastChangelogVersion": "0.77.0",
   "defaultProvider": "litellm",
-  "defaultModel": "llm-gateway/claude-sonnet-4-6",
+  "defaultModel": "llm-gateway/Kimi-K2.6",
   "defaultThinkingLevel": "high",
   "theme": "dracula",
   "packages": [
-    "npm:pi-subagents",
-    "npm:pi-provider-litellm"
+    "npm:pi-provider-litellm",
+    "npm:pi-vim",
+    "../../Development/pi-extensions/packages/alucard-theme",
+    "../../Development/pi-extensions/packages/caveman",
+    "../../Development/pi-extensions/packages/confirm-destructive",
+    "../../Development/pi-extensions/packages/dirty-repo-guard",
+    "../../Development/pi-extensions/packages/dracula-theme",
+    "../../Development/pi-extensions/packages/guard",
+    "../../Development/pi-extensions/packages/handoff",
+    "../../Development/pi-extensions/packages/pi-subagents",
+    "../../Development/pi-extensions/packages/plan-mode",
+    "../../Development/pi-extensions/packages/rtk",
+    "../../Development/pi-extensions/packages/sandbox",
+    "../../Development/pi-extensions/packages/simplify",
+    "../../Development/pi-extensions/packages/statusline"
   ],
   "subagents": {
     "agentOverrides": {
@@ -39,5 +52,8 @@
         ]
       }
     }
+  },
+  "compaction": {
+    "enabled": false
   }
 }
