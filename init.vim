@@ -53,6 +53,11 @@ require("nvim-tree").setup({
   filters = {
     dotfiles = false, -- Set to true to hide .env, .git, etc.
   },
+  git = {
+    enable = true,
+    ignore = false, -- Set this to false to show git-ignored files
+    timeout = 400,
+  },
 })
 
 -- Configure Telescope
