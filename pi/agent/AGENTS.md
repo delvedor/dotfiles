@@ -60,6 +60,16 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## Git & Commits
+- **NEVER commit unless explicitly asked by the user.**
+- Before committing, you must run `git status` to show the user what is being staged.
+- Only stage the files you have actually modified in this session using `git add <file>`. Do not use `git add .` or `git add -A`.
+- If the user asks for a commit, generate a concise, descriptive commit message based on the actual changes made.
+
+## Commands
+- Do not chain commands that include `git commit` unless I give you a multi-step instruction that requires it.
+- After making code changes, wait for my feedback before attempting to stage or commit.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

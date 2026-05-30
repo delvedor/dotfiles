@@ -1,8 +1,9 @@
 {
-  "lastChangelogVersion": "0.77.0",
-  "defaultProvider": "litellm",
-  "defaultModel": "llm-gateway/Kimi-K2.6",
+  "lastChangelogVersion": "0.78.0",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-sonnet-4-6",
   "defaultThinkingLevel": "high",
+  "memoryModel": "llm-gateway/DeepSeek-V4-Flash",
   "theme": "dracula",
   "packages": [
     "npm:pi-provider-litellm",
@@ -19,6 +20,7 @@
     "../../Development/pi-extensions/packages/rtk",
     "../../Development/pi-extensions/packages/sandbox",
     "../../Development/pi-extensions/packages/simplify",
-    "../../Development/pi-extensions/packages/statusline"
+    "../../Development/pi-extensions/packages/statusline",
+    "../../Development/pi-extensions/packages/memory"
   ]
 }
