@@ -6,7 +6,7 @@
       "*.com", "*.org", "*.net", "*.io", "*.dev", "*.co", "*.ai",
       "*.app", "*.cloud", "*.run", "*.sh", "*.xyz", "*.tech", "*.tools",
       "*.so", "*.me", "*.us", "*.uk", "*.eu", "*.de", "*.fr", "*.it",
-      "*.edu", "*.gov", "*.info", "*.cc", "*.ly", "*.dev", "*.new",
+      "*.edu", "*.gov", "*.info", "*.cc", "*.ly", "*.dev", "*.new", "*.no",
       "localhost", "127.0.0.1", "::1"
     ],
     "deniedDomains": []
@@ -17,7 +17,6 @@
       "~/.aws",
       "~/.gnupg",
       "~/.npmrc",
-      "~/.config/gh/hosts.yml",
       "~/.gitconfig",
       ".env",
       "~/.pi/auth.json",

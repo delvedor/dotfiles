@@ -1,12 +1,11 @@
 {
-  "lastChangelogVersion": "0.78.0",
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-sonnet-4-6",
+  "lastChangelogVersion": "0.79.6",
+  "defaultProvider": "elastic-litellm",
+  "defaultModel": "llm-gateway/Kimi-K2.6",
   "defaultThinkingLevel": "high",
   "memoryModel": "llm-gateway/DeepSeek-V4-Flash",
   "theme": "dracula",
   "packages": [
-    "npm:pi-provider-litellm",
     "npm:pi-vim",
     "../../Development/pi-extensions/packages/alucard-theme",
     "../../Development/pi-extensions/packages/caveman",
