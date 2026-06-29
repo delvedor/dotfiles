@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.79.6",
+  "lastChangelogVersion": "0.80.2",
   "defaultProvider": "elastic-litellm",
   "defaultModel": "llm-gateway/Kimi-K2.6",
   "defaultThinkingLevel": "high",
@@ -7,6 +7,10 @@
   "theme": "dracula",
   "packages": [
     "npm:pi-vim",
+    "git:github.com/DietrichGebert/ponytail",
+    {
+      "source": "/Users/delvedor/.config/nono/packages/always-further/pi"
+    },
     "../../Development/pi-extensions/packages/alucard-theme",
     "../../Development/pi-extensions/packages/caveman",
     "../../Development/pi-extensions/packages/confirm-destructive",
@@ -14,12 +18,11 @@
     "../../Development/pi-extensions/packages/dracula-theme",
     "../../Development/pi-extensions/packages/guard",
     "../../Development/pi-extensions/packages/handoff",
+    "../../Development/pi-extensions/packages/memory",
     "../../Development/pi-extensions/packages/pi-subagents",
     "../../Development/pi-extensions/packages/plan-mode",
     "../../Development/pi-extensions/packages/rtk",
-    "../../Development/pi-extensions/packages/sandbox",
     "../../Development/pi-extensions/packages/simplify",
-    "../../Development/pi-extensions/packages/statusline",
-    "../../Development/pi-extensions/packages/memory"
+    "../../Development/pi-extensions/packages/statusline"
   ]
 }
