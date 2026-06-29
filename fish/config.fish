@@ -24,6 +24,16 @@ if status is-interactive
   alias pip='pip3'
 
   alias claude-personal='CLAUDE_CONFIG_DIR=~/.claude-personal claude'
+
+  alias l='ls -al'
+
+  function pi --description "Run pi.dev agent sandboxed via nono"
+    nono run --profile pi --allow-cwd -- command pi $argv
+  end
+
+  function upi --description "Run the native, unsandboxed pi.dev agent"
+    command pi $argv
+  end
 end
 
 set -g fish_key_bindings fish_vi_key_bindings

@@ -1,0 +1,19 @@
+{
+  "extends": "always-further/pi",
+  "meta": {
+    "name": "pi"
+  },
+  "filesystem": {
+    "read": [
+      "$HOME/.local/state/fnm_multishells",
+      "$HOME/Development",
+      "$HOME/Desktop",
+      "$HOME/Documents",
+      "$HOME/Downloads"
+    ],
+    "deny": [
+      "$HOME/.pi/auth.json",
+      "$HOME/.pi/models.json"
+    ]
+  }
+}

@@ -35,6 +35,8 @@ brew "maven"
 brew "mkcert"
 # Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
+# Capability-based sandbox shell for AI agents with OS-enforced isolation
+brew "nono"
 # Interpreted, interactive, object-oriented programming language
 brew "python@3.13"
 # Reattach process (e.g., tmux) to background
@@ -51,8 +53,6 @@ brew "tmux"
 brew "uv"
 # Process YAML, JSON, XML, CSV and properties documents from the CLI
 brew "yq"
-# Vault
-brew "hashicorp/tap/vault"
 cask "font-meslo-lg-nerd-font"
 # Set of tools to manage resources and applications hosted on Google Cloud
 cask "gcloud-cli"
