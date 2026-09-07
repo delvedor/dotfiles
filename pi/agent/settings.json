@@ -1,9 +1,9 @@
 {
-  "lastChangelogVersion": "0.80.2",
-  "defaultProvider": "elastic-litellm",
-  "defaultModel": "llm-gateway/Kimi-K2.6",
-  "defaultThinkingLevel": "high",
-  "memoryModel": "llm-gateway/DeepSeek-V4-Flash",
+  "lastChangelogVersion": "0.85.1",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-opus-4-8",
+  "defaultThinkingLevel": "xhigh",
+  "memoryModel": "claude-haiku4-5",
   "theme": "dracula",
   "packages": [
     "npm:pi-vim",
