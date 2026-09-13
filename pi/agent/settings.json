@@ -2,8 +2,10 @@
   "lastChangelogVersion": "0.85.1",
   "defaultProvider": "anthropic",
   "defaultModel": "claude-opus-4-8",
-  "defaultThinkingLevel": "xhigh",
-  "memoryModel": "claude-haiku4-5",
+  "defaultThinkingLevel": "high",
+  "subagents": {
+    "defaultModel": "claude-haiku-4-5"
+  },
   "theme": "dracula",
   "packages": [
     "npm:pi-vim",
@@ -11,6 +13,7 @@
     {
       "source": "/Users/delvedor/.config/nono/packages/always-further/pi"
     },
+    "../../Development/pi-extensions/packages/pi-subagents",
     "../../Development/pi-extensions/packages/alucard-theme",
     "../../Development/pi-extensions/packages/caveman",
     "../../Development/pi-extensions/packages/confirm-destructive",
@@ -18,11 +21,11 @@
     "../../Development/pi-extensions/packages/dracula-theme",
     "../../Development/pi-extensions/packages/guard",
     "../../Development/pi-extensions/packages/handoff",
-    "../../Development/pi-extensions/packages/memory",
-    "../../Development/pi-extensions/packages/pi-subagents",
     "../../Development/pi-extensions/packages/plan-mode",
     "../../Development/pi-extensions/packages/rtk",
     "../../Development/pi-extensions/packages/simplify",
-    "../../Development/pi-extensions/packages/statusline"
+    "../../Development/pi-extensions/packages/statusline",
+    "npm:pi-subagents",
+    "npm:pi-memory"
   ]
 }
