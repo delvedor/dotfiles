@@ -5,6 +5,8 @@ pi/agent/models.json
 pi/agent/run-history.jsonl
 pi/agent/sessions
 pi/agent/npm
+pi/agent/git
+pi/agent/skills
 pi/agent/memory
 pi/agent/trust.json
 pi/agent/models-store.json
