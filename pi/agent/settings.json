@@ -1,10 +1,14 @@
 {
-  "lastChangelogVersion": "0.85.1",
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-opus-4-8",
+  "lastChangelogVersion": "0.87.0",
+  "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "high",
   "subagents": {
-    "defaultModel": "claude-haiku-4-5"
+    "defaultModel": "gpt-5.6-terra",
+    "agentOverrides": {
+      "scout": {
+        "model": "gpt-5.6-luna"
+      }
+    }
   },
   "theme": "dracula",
   "packages": [
@@ -13,7 +17,10 @@
     {
       "source": "/Users/delvedor/.config/nono/packages/always-further/pi"
     },
-    "../../Development/pi-extensions/packages/pi-subagents",
+    "npm:pi-subagents",
+    "npm:pi-memory",
+    "../../Development/pi-extensions/packages/memory-context-guard",
+    "npm:pi-mcp-adapter",
     "../../Development/pi-extensions/packages/alucard-theme",
     "../../Development/pi-extensions/packages/caveman",
     "../../Development/pi-extensions/packages/confirm-destructive",
@@ -24,8 +31,6 @@
     "../../Development/pi-extensions/packages/plan-mode",
     "../../Development/pi-extensions/packages/rtk",
     "../../Development/pi-extensions/packages/simplify",
-    "../../Development/pi-extensions/packages/statusline",
-    "npm:pi-subagents",
-    "npm:pi-memory"
+    "../../Development/pi-extensions/packages/statusline"
   ]
 }
