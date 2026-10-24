@@ -1,5 +1,5 @@
 {
-  "extends": "always-further/pi",
+  "extends": "nolabs-ai/pi",
   "meta": {
     "name": "pi"
   },
