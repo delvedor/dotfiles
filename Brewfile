@@ -5,6 +5,8 @@ brew "asdf"
 brew "bat"
 # GNU File, Shell, and Text utilities
 brew "coreutils"
+# Docker CLI plugin for extended build capabilities with BuildKit
+brew "docker-buildx"
 # Simple, fast and user-friendly alternative to find
 brew "fd"
 # User-friendly command-line shell for UNIX-like operating systems
@@ -35,6 +37,8 @@ brew "maven"
 brew "mkcert"
 # Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
+# Open-source, cross-platform JavaScript runtime environment
+brew "node"
 # Capability-based sandbox shell for AI agents with OS-enforced isolation
 brew "nono"
 # Interpreted, interactive, object-oriented programming language
@@ -53,6 +57,8 @@ brew "tmux"
 brew "uv"
 # Process YAML, JSON, XML, CSV and properties documents from the CLI
 brew "yq"
+# App to build and share containerised applications and microservices
+cask "docker-desktop"
 cask "font-meslo-lg-nerd-font"
 # Set of tools to manage resources and applications hosted on Google Cloud
 cask "gcloud-cli"
