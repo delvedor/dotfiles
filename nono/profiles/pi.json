@@ -9,11 +9,15 @@
       "$HOME/Development",
       "$HOME/Desktop",
       "$HOME/Documents",
-      "$HOME/Downloads"
+      "$HOME/Downloads",
+      "$HOME/.config/gh"
     ],
     "deny": [
       "$HOME/.pi/auth.json",
       "$HOME/.pi/models.json"
     ]
+  },
+  "env_credentials": {
+    "keyring://gh:github.com/delvedor?decode=go-keyring": "GH_TOKEN"
   }
 }
