@@ -155,11 +155,7 @@ let g:any_jump_disable_default_keybindings = 1
 nnoremap <C-o> :AnyJump<Cr>
 
 " ctrlp
-nmap <silent> <C-p> :CtrlP<CR>
-" default ignore
-let g:ctrlp_custom_ignore = '\v[\/](node_modules|target|dist|build)|(\.(swp|ico|git|svn))$'
-" ignore what is inside the .gitignore
-let g:ctrlp_user_command = ['.git/', 'git --git-dir=%s/.git ls-files -oc --exclude-standard']
+nnoremap <C-p> <cmd>lua require("telescope.builtin").find_files({ find_command = { "fd", "--type", "f", "--hidden", "--no-require-git", "--exclude", ".git" } })<cr>
 
 " Disable default folding in markdown files
 let g:vim_markdown_folding_disabled = 1
