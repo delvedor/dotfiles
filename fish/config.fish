@@ -1,3 +1,7 @@
+# The following lines were added by Docker Desktop to add commands to your PATH.
+export PATH="$PATH:/Users/delvedor/.docker/bin"
+# End of Docker Desktop section.
+
 if status is-interactive
 # Commands to run in interactive sessions can go here
   # Alias Vim
@@ -27,6 +31,14 @@ if status is-interactive
 
   alias l='ls -al'
 
+  # function pi --description "Run pi.dev agent sandboxed via nono"
+  #   nono run --profile pi --allow-cwd -- command pi $argv
+  # end
+
+  # function upi --description "Run the native, unsandboxed pi.dev agent"
+  #   command pi $argv
+  # end
+
   function pi --description "Run pi.dev agent sandboxed via nono"
     nono run --profile pi --allow-cwd -- command pi $argv
   end
@@ -40,3 +52,4 @@ set -g fish_key_bindings fish_vi_key_bindings
 
 # Pi
 fish_add_path "/Users/delvedor/.local/share/fnm/node-versions/v24.14.0/installation/bin"
+status --is-interactive; and source (goenv init -|psub)
