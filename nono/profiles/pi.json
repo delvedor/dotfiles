@@ -10,7 +10,14 @@
       "$HOME/Desktop",
       "$HOME/Documents",
       "$HOME/Downloads",
-      "$HOME/.config/gh"
+      "$HOME/.config/gh",
+      "$HOME/.goenv"
+    ],
+    "allow": [
+      "$HOME/.goenv/shims",
+      "$HOME/go",
+      "$HOME/.cache/go-build",
+      "$HOME/Library/Caches/go-build"
     ],
     "deny": [
       "$HOME/.pi/auth.json",
